@@ -7,6 +7,8 @@
 
 This is an open-source Discord bot, akin to Minecraft server software. With a basic blacklist, link blocking, secret easter eggs, and third party plugin support, this bot has infinite expandability!
 
+Join the discord here: https://nexint.org/discord
+
 ## Pre-requisites:
 - NPM and node.js is required.
 
@@ -16,7 +18,7 @@ This is an open-source Discord bot, akin to Minecraft server software. With a ba
 - Run either the included start.bat script or make your own and run it!
 
 ## Copyright / Bot Issues:
-- Contact business@nexint.org if there are any copyright issues in this mod, and I will try to resolve them as fast as I can. (Suggested method of communication!)
+- Contact business@nexint.org if there are any copyright issues in this bot, and I will try to resolve them as fast as I can. (Suggested method of communication!)
 - Alternate E-mail: Nexint@nexint.org
 - Contact @Nexint on Discord for any questions about this bot, issues, and feedback. I'll reply as soon as I can!
 
