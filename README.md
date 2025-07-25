@@ -5,7 +5,7 @@
 
 # OpenBot
 
-This is a open-source Discord bot, capable of functioning as a server.
+This is an open-source Discord bot, akin to Minecraft server software. With a basic blacklist, link blocking, secret easter eggs, and third party plugin support, this bot has infinite expandability!
 
 ## Pre-requisites:
 - NPM and node.js is required.
@@ -18,7 +18,11 @@ This is a open-source Discord bot, capable of functioning as a server.
 ## Copyright / Bot Issues:
 - Contact business@nexint.org if there are any copyright issues in this mod, and I will try to resolve them as fast as I can. (Suggested method of communication!)
 - Alternate E-mail: Nexint@nexint.org
-- Contact @Nexint on Discord for any questions about this mod, issues, and feedback. I'll reply as soon as I can!
+- Contact @Nexint on Discord for any questions about this bot, issues, and feedback. I'll reply as soon as I can!
 
 ## Additional notes:
+- Plugins are not required for basic functionality, albeit it should be noted that none of the commands or features of this bot work without the built in plugins. Third party plugins may be able to add these features on their own.
+- Documentation does not exist. For plugin developers, you are on your own (for now).
+- I took lots of inspiration from Discord.js's guide! Some remnants of their code are sprinkled around here.
 - Again, this is pre-pre-alpha software. Things are going to break, especially third party plugins. Expect bugs!
+- Currently under the GPL-V3. Future versions may use a different license, or a custom one.
