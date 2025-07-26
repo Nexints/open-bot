@@ -1,5 +1,5 @@
 > [!WARNING]
-> This is a open-source Discord server. I am not liable for any plugins that are installed, excluding the ones already here. Do not contact me if you have problems and are running third party plugins.
+> This is a open-source Discord bot (that functions like a server). I am not liable for any plugins that are installed, excluding the ones already here. Do not contact me if you have problems and are running third party plugins.
 >
 > This is PRE-PRE-ALPHA SOFTWARE! While I can try to fix as many bugs as possible, I am not liable for any problems this server software has. Use at your own risk.
 
@@ -27,4 +27,5 @@ Join the discord here: https://nexint.org/discord
 - Documentation does not exist. For plugin developers, you are on your own (for now).
 - I took lots of inspiration from Discord.js's guide! Some remnants of their code are sprinkled around here.
 - Again, this is pre-pre-alpha software. Things are going to break, especially third party plugins. Expect bugs!
-- Currently under the GPL-V3. Future versions may use a different license, or a custom one.
+- Currently under the GPL-V3. Future versions may use a different license, or a custom one, but this is unlikely to happen.
+- In the event that the license changes, license changes only apply for the latest version of the code.
