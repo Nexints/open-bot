@@ -12,8 +12,10 @@ module.exports = {
         return [
             'Built-in:',
             '/stop - Closes bot',
-            '/help (page) - Opens this menu',
-            '/refresh - Refreshes the bot!',
+            '/help (page) - Opens this help menu. Can be added to by plugins.',
+            '/info (page) - Opens a neat info menu!',
+            'This function can\'t be expanded upon by other plugins.',
+            '/refresh - Refreshes the bot (logs off and on Discord).',
             '/restart - Restarts the bot.',
             'This help menu is only for the console.',
         ];
@@ -33,11 +35,37 @@ module.exports = {
                 } else {
                     page = 1;
                 }
-                console.log("[" + new Date().toLocaleTimeString() + `] [INFO]`, `\x1b[36m----------- Help menu: (${page}/${Math.ceil((helpMenu.length - 1) / 8)}) -----------\x1b[0m`);
+                console.log("[" + new Date().toLocaleTimeString() + `] [INFO]`, `\x1b[36m----------------- Help menu: (${page}/${Math.ceil((helpMenu.length) / 8)}) -----------------\x1b[0m`);
                 for (let i = (page - 1) * 8; i < Math.min(8 + ((page - 1) * 8), helpMenu.length); i++) {
                     console.log("[" + new Date().toLocaleTimeString() + '] [INFO] ' + helpMenu[i]);
                 }
-                console.log("[" + new Date().toLocaleTimeString() + '] [INFO]', '\x1b[36m--------------- Nex 2025 ---------------\x1b[0m');
+                console.log("[" + new Date().toLocaleTimeString() + '] [INFO]', '\x1b[36m--------------------- Nex 2025 ---------------------\x1b[0m');
+                return true;
+            case "/info":
+                let info;
+                const infoList = [
+                    'Version control:',
+                    'The first number (X.0.0) is the major release.',
+                    'The second number (0.X.0) is the minor release.',
+                    'The third number (0.0.X) is the build #.',
+                    'Typically, only the minor or major releases are',
+                    'stable for production workflows.',
+                    'Built-in plugins aside from "built-in" are typically',
+                    'not updated as often, and may be unstable.',
+                ];
+                if (command.split(" ")[1] != undefined) {
+                    info = Number(parseInt(command.split(" ")[1].toLowerCase(), 10));
+                    if (isNaN(info) || info < 1) {
+                        info = 1;
+                    }
+                } else {
+                    info = 1;
+                }
+                console.log("[" + new Date().toLocaleTimeString() + `] [INFO]`, `\x1b[36m----------------- Info menu: (${info}/${Math.ceil((infoList.length) / 8)}) -----------------\x1b[0m`);
+                for (let i = (info - 1) * 8; i < Math.min(8 + ((info - 1) * 8), infoList.length); i++) {
+                    console.log("[" + new Date().toLocaleTimeString() + '] [INFO] ' + infoList[i]);
+                }
+                console.log("[" + new Date().toLocaleTimeString() + '] [INFO]', '\x1b[36m--------------------- Nex 2025 ---------------------\x1b[0m');
                 return true;
             case "/stop":
                 console.log("[" + new Date().toLocaleTimeString() + '] [INFO] Stopping bot execution.');

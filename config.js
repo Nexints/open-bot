@@ -24,6 +24,6 @@ module.exports = {
     restart: "start start.bat", // This would be different on a linux based system. It would be "sh start.sh".
 
     // Do not change these. Used for version checking and updating.
-    version: "0.0.1",
-    versionID: 1,
+    version: "0.0.2",
+    versionID: 2,
 }

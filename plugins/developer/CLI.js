@@ -1,3 +1,6 @@
+const { version, versionID } = require('./../../config.js');
+const { latestVersion } = require('./../../index.js');
+
 module.exports = {
     // Example of a help menu given by the bot.
     // Input: none
@@ -5,7 +8,8 @@ module.exports = {
     help() {
         return [
             'Developer:',
-            '/send (channel) (message) - Sends a message as the bot!'
+            '/send (channel) (msg) - Sends a message as the bot!',
+            '/print (args) - Prints stuff to the console!',
         ];
     },
     // Example of a command in the CLI (command line) of the bot.
@@ -27,6 +31,27 @@ module.exports = {
                 }
                 channel.send(sentMessage);
                 console.log("[" + new Date().toLocaleTimeString() + `] [INFO] Sent ${sentMessage} as the bot!`);
+                return true;
+            case "/print": // Prints various things. This mostly serves as a developer command.
+                let print;
+                if (command.split(" ")[1] != undefined) {
+                    print = command.split(" ")[1].toLowerCase();
+                }
+                switch (print) {
+                    case 'version':
+                        console.log("[" + new Date().toLocaleTimeString() + `] [INFO] Printing the version`);
+                        console.log("[" + new Date().toLocaleTimeString() + `] [INFO] ${version} (${versionID}) / Latest version ID: ${latestVersion}.`);
+                        if(latestVersion > versionID){
+                            console.log("[" + new Date().toLocaleTimeString() + `] [INFO] ${latestVersion - versionID} commits behind.`);
+                        }else{
+                            console.log("[" + new Date().toLocaleTimeString() + `] [INFO] ${versionID - latestVersion} commits ahead.`);
+                        }
+                        break;
+                    default:
+                        console.log("[" + new Date().toLocaleTimeString() + `] [WARN] Not a valid argument.`);
+                        console.log("[" + new Date().toLocaleTimeString() + `] [INFO] Valid arguments:`);
+                        console.log("[" + new Date().toLocaleTimeString() + `] [INFO] version - prints version info`);
+                }
                 return true;
             default:
                 return false;
