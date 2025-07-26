@@ -1,7 +1,9 @@
 > [!WARNING]
 > This is a open-source Discord bot (that functions like a server). I am not liable for any plugins that are installed, excluding the ones already here. Do not contact me if you have problems and are running third party plugins.
->
+> 
 > This is PRE-PRE-ALPHA SOFTWARE! While I can try to fix as many bugs as possible, I am not liable for any problems this server software has. Use at your own risk.
+>
+> PLEASE host your own instance of this bot! The main instance has backdoors and test commands inserted by myself for testing purposes that will be deleted in the future. Hosting your own instance is safe, as you have access to the backdoors and test commands I created. Expected removal date: V1.0.0
 
 # OpenBot
 
