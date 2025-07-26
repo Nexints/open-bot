@@ -27,5 +27,5 @@ Join the discord here: https://nexint.org/discord
 - Documentation does not exist. For plugin developers, you are on your own (for now).
 - I took lots of inspiration from Discord.js's guide! Some remnants of their code are sprinkled around here.
 - Again, this is pre-pre-alpha software. Things are going to break, especially third party plugins. Expect bugs!
-- Currently under the GPL-V3. Future versions may use a different license, or a custom one, but this is unlikely to happen.
+- Currently under the GNU-AGPL. Future versions may use a different license, or a custom one, but this is unlikely to happen.
 - In the event that the license changes, license changes only apply for the latest version of the code.
