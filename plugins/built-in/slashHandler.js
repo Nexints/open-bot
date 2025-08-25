@@ -40,11 +40,11 @@ module.exports = {
 				try {
 
 					if (interaction.replied || interaction.deferred) {
-						await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
+						await interaction.followUp({ content: 'There was an error while executing this command! Please check the console logs.', ephemeral: true });
 					} else {
-						await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+						await interaction.reply({ content: 'There was an error while executing this command! Please check the console logs.', ephemeral: true });
 					}
-					console.log("[" + new Date().toLocaleTimeString() + `] [ERROR] An error happened while processing a command!`);
+					console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] An error happened while processing a command!`);
 					console.error(error);
 				}
 				catch (error) {

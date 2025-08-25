@@ -136,6 +136,7 @@ module.exports = {
                                 content: "Deleted all logs of messages in every server.",
                                 flags: MessageFlags.Ephemeral
                             });
+                            console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Deleted all chat logs.`);
                             break;
                         case "ids":
                             await updates.destroy({ where: {} });
@@ -143,6 +144,7 @@ module.exports = {
                                 content: "Deleted all channel IDs where broadcasting is enabled.",
                                 flags: MessageFlags.Ephemeral
                             });
+                            console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Deleted all IDs where broadcasting is enabled.`);
                             break;
                         case "users":
                             await users.destroy({ where: {} });
@@ -150,6 +152,7 @@ module.exports = {
                                 content: "Deleted all users allowed to post messages publicly.",
                                 flags: MessageFlags.Ephemeral
                             });
+                            console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Deleted all users allowed to post messages.`);
                             break;
                         case "all":
                             await chatLog.destroy({ where: {} });
@@ -159,6 +162,7 @@ module.exports = {
                                 content: "Deleted all databases.",
                                 flags: MessageFlags.Ephemeral
                             });
+                            console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Deleted all databases.`);
                             break;
                     }
                     break;

@@ -26,7 +26,7 @@ module.exports = {
             // SQLite only
             storage: 'devdb.sqlite',
         });
-        
+
         // Databases used.
         const enabled = sequelize.define('enabled', {
             intro: Sequelize.TEXT,
@@ -61,6 +61,13 @@ module.exports = {
         });
 
         const links = moderation.define('links', {
+            channelId: {
+                type: Sequelize.STRING,
+                unique: true,
+            },
+        });
+
+        const invites = moderation.define('invites', {
             channelId: {
                 type: Sequelize.STRING,
                 unique: true,
@@ -102,6 +109,7 @@ module.exports = {
         updates.sync();
         optOut.sync();
         links.sync();
+        invites.sync();
         blacklist.sync();
     }
 }

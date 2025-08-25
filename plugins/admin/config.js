@@ -37,6 +37,13 @@ const links = moderation.define('links', {
     },
 });
 
+const invites = moderation.define('invites', {
+    channelId: {
+        type: Sequelize.STRING,
+        unique: true,
+    },
+});
+
 const blacklist = moderation.define('blacklist', {
     channelId: {
         type: Sequelize.STRING,
@@ -71,7 +78,7 @@ module.exports = {
                     option
                         .setName('channel')
                         .setRequired(true)
-                        .setDescription('Which channel? - Automatically creates one for you!')
+                        .setDescription('Which channel?')
                         .addChoices(
                             { name: 'update', value: 'update' },
                             { name: 'test', value: 'test' },
@@ -117,6 +124,19 @@ module.exports = {
                         .addChoices(
                             { name: 'Enable', value: 'enable' },
                             { name: 'Disable', value: 'disable' },
+                        )))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('invites')
+                .setDescription('Enable or disable invite links in this channel.')
+                .addStringOption(option =>
+                    option
+                        .setName('value')
+                        .setRequired(true)
+                        .setDescription('Enable or disable invites?')
+                        .addChoices(
+                            { name: 'Enable', value: 'enable' },
+                            { name: 'Disable', value: 'disable' },
                         ))),
     async execute(interaction) {
         // interaction.user is the object representing the User who ran the command
@@ -143,7 +163,7 @@ module.exports = {
                                         })
                                         if (disabled) {
                                             await interaction.reply({ content: "Updates are already enabled for this channel here.", flags: MessageFlags.Ephemeral });
-                                            console.log("[" + new Date().toLocaleTimeString() + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried enabling updates for the update channel \`${interaction.options.getString('channel')}\` in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but updates are already enabled here.`);
+                                            console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried enabling updates for the update channel \`${interaction.options.getString('channel')}\` in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but updates are already enabled here.`);
                                             return;
                                         }
                                         await updates.create({
@@ -152,16 +172,16 @@ module.exports = {
                                             type: "channel",
                                         });
                                         await interaction.reply("Enabled updates here for channel " + interaction.options.getString('channel') + "!");
-                                        console.log("[" + new Date().toLocaleTimeString() + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) has enabled updates for the update channel \`${interaction.options.getString('channel')}\` in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
+                                        console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) has enabled updates for the update channel \`${interaction.options.getString('channel')}\` in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
                                     } else {
                                         await interaction.reply("This bot doesn't have permission to perform this action in this channel.");
-                                        console.log("[" + new Date().toLocaleTimeString() + `] [WARN] The user \`${interaction.user.id}\` (${interaction.user.username}) tried enabling updates for the update channel \`${interaction.options.getString('channel')}\` in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but the bot can't view or send messages here.`);
+                                        console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] The user \`${interaction.user.id}\` (${interaction.user.username}) tried enabling updates for the update channel \`${interaction.options.getString('channel')}\` in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but the bot can't view or send messages here.`);
                                     }
 
                                 }
                                 catch (error) {
                                     await interaction.reply("Something went wrong. Error: " + error);
-                                    console.log("[" + new Date().toLocaleTimeString() + `] [ERROR] An error happened while trying to enable updates for the update channel \`${interaction.options.getString('channel')}\` in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`). Error message: ${error}`);
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] An error happened while trying to enable updates for the update channel \`${interaction.options.getString('channel')}\` in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`). Error message: ${error}`);
                                 }
                                 break;
                             case "disable":
@@ -174,12 +194,12 @@ module.exports = {
 
                                 if (!rowCount) {
                                     await interaction.reply({ content: "Updates are already disabled.", flags: MessageFlags.Ephemeral });
-                                    console.log("[" + new Date().toLocaleTimeString() + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disabling update channel ${interaction.options.getString('channel')} in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but updates are already disabled here.`);
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disabling update channel ${interaction.options.getString('channel')} in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but updates are already disabled here.`);
                                     return;
                                 }
 
                                 await interaction.reply("Disabled updates here for the channel " + interaction.options.getString('channel') + ".");
-                                console.log("[" + new Date().toLocaleTimeString() + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) disabled update channel ${interaction.options.getString('channel')} in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
+                                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) disabled update channel ${interaction.options.getString('channel')} in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
                                 break;
                         }
                         break;
@@ -193,13 +213,13 @@ module.exports = {
                                 });
 
                                 if (!rowCount) {
-                                    await interaction.reply({ content: "Links are already enabled here.", flags: MessageFlags.Ephemeral });
-                                    console.log("[" + new Date().toLocaleTimeString() + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried enabling links in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but links are already enabled here.`);
+                                    await interaction.reply({ content: "Linksare already enabled here.", flags: MessageFlags.Ephemeral });
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried enabling links in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but links are already enabled here.`);
                                     return;
                                 }
 
-                                await interaction.reply("Links are now enabled.");
-                                console.log("[" + new Date().toLocaleTimeString() + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) enabled links in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
+                                await interaction.reply("Links and invites are now enabled.");
+                                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) enabled links in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
                                 break;
                             case "disable":
                                 try {
@@ -210,14 +230,53 @@ module.exports = {
                                     if (interaction.channel.permissionsFor(interaction.guild.members.me).has(['ManageMessages'], true) == false && interaction.channel.permissionsFor(interaction.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
                                         await interaction.channel.send({ content: "-# Please give me permissions to disable links! I need the permission \"Manage Messages\"." });
                                     };
-                                    console.log("[" + new Date().toLocaleTimeString() + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) disabled links in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) disabled links in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
                                 } catch (error) {
                                     if (error.name === 'SequelizeUniqueConstraintError') {
                                         await interaction.reply({ content: "Links are already disabled here.", flags: MessageFlags.Ephemeral });
-                                        console.log("[" + new Date().toLocaleTimeString() + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disabling links in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but links are already disabled here.`);
+                                        console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disabling links in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but links are already disabled here.`);
                                         return;
                                     }
-                                    console.log("[" + new Date().toLocaleTimeString() + `] [ERROR] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disabling links in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but something seriously wrong happened. Error: \'${error}\'`);
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disabling links in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but something seriously wrong happened. Error: \'${error}\'`);
+                                }
+                                break;
+                        }
+                        break;
+                    case "invites":
+                        switch (interaction.options.getString('value')) {
+                            case "enable":
+                                const rowCount = await invites.destroy({
+                                    where: {
+                                        channelId: interaction.channelId,
+                                    }
+                                });
+
+                                if (!rowCount) {
+                                    await interaction.reply({ content: "Invites are already enabled here.", flags: MessageFlags.Ephemeral });
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried enabling invites in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but links are already enabled here.`);
+                                    return;
+                                }
+
+                                await interaction.reply("Invites are now enabled.");
+                                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) enabled invites in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
+                                break;
+                            case "disable":
+                                try {
+                                    await invites.create({
+                                        channelId: interaction.channelId,
+                                    });
+                                    await interaction.reply({ content: "Invites are now disabled." });
+                                    if (interaction.channel.permissionsFor(interaction.guild.members.me).has(['ManageMessages'], true) == false && interaction.channel.permissionsFor(interaction.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
+                                        await interaction.channel.send({ content: "-# Please give me permissions to disable links and invites! I need the permission \"Manage Messages\"." });
+                                    };
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) disabled links and invites in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
+                                } catch (error) {
+                                    if (error.name === 'SequelizeUniqueConstraintError') {
+                                        await interaction.reply({ content: "Links or invites are already disabled here.", flags: MessageFlags.Ephemeral });
+                                        console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disabling links and invites in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but links are already disabled here.`);
+                                        return;
+                                    }
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disabling links and invites in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but something seriously wrong happened. Error: \'${error}\'`);
                                 }
                                 break;
                         }
@@ -234,12 +293,12 @@ module.exports = {
                                     });
 
                                     if (!rowCount) {
-                                        console.log("[" + new Date().toLocaleTimeString() + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried allowing all words in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but there is no blacklist.`);
+                                        console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried allowing all words in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but there is no blacklist.`);
                                         await interaction.reply({ content: "All words have already been allowed.", flags: MessageFlags.Ephemeral });
                                         return;
                                     }
                                     await interaction.reply("All words have been enabled.");
-                                    console.log("[" + new Date().toLocaleTimeString() + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) allowed all words in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) allowed all words in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
                                 } else {
                                     rowCount = await blacklist.destroy({
                                         where: {
@@ -250,9 +309,11 @@ module.exports = {
 
                                     if (!rowCount) {
                                         await interaction.reply({ content: "The word has already been allowed", flags: MessageFlags.Ephemeral });
+                                        console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried allowing the word "${interaction.options.getString('word')}" in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but the word is already allowed.`);
                                         return;
                                     }
                                     await interaction.reply("The word " + interaction.options.getString('word') + " has been enabled.");
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) allowed the word "${interaction.options.getString('word')}" in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
                                 }
 
                                 break;
@@ -260,6 +321,7 @@ module.exports = {
                                 try {
                                     if (interaction.options.getString('word') === null) {
                                         await interaction.reply({ content: "Nothing has been done. No word has been specified.", flags: MessageFlags.Ephemeral });
+                                        console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disallowing an unspecified word in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`). No action has been done.`);
                                         return;
                                     }
                                     const blacklists = await blacklist.findAll({
@@ -275,6 +337,7 @@ module.exports = {
                                     })
                                     if (disabled) {
                                         await interaction.reply({ content: "The word has already been blacklisted.", flags: MessageFlags.Ephemeral });
+                                        console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disabling the word "${interaction.options.getString('word')}" in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but the word was already disabled.`);
                                         return;
                                     }
                                     if (interaction.options.getString('strict') == 'true') {
@@ -292,6 +355,7 @@ module.exports = {
                                     }
 
                                     await interaction.reply({ content: "The word has now been blacklisted." });
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) disabled the word "${interaction.options.getString('word')}" in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`). Strict? ${interaction.options.getString('strict')}`);
                                 }
                                 catch (error) {
 
@@ -329,6 +393,7 @@ module.exports = {
                                 })
                                 if (disabled) {
                                     await interaction.reply({ content: "Updates are already enabled for this channel here.", flags: MessageFlags.Ephemeral });
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried enabling updates for the update channel \`${interaction.options.getString('channel')}\` in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but updates are already enabled here.`);
                                     return;
                                 }
                                 await updates.create({
@@ -337,6 +402,7 @@ module.exports = {
                                     type: "dms",
                                 });
                                 await interaction.reply("Enabled updates here for channel " + interaction.options.getString('channel') + "!");
+                                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) has enabled updates for the update channel \`${interaction.options.getString('channel')}\` in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
                             }
                             catch (error) {
                                 await interaction.reply("Something went wrong. Error: " + error);
@@ -351,10 +417,12 @@ module.exports = {
 
                             if (!rowCount) {
                                 await interaction.reply({ content: "Updates are already disabled.", flags: MessageFlags.Ephemeral });
+                                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disabling update channel ${interaction.options.getString('channel')} in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but updates are already disabled here.`);
                                 return;
                             }
 
                             await interaction.reply("Disabled updates here for all channels.");
+                            console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) disabled update channel ${interaction.options.getString('channel')} in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
                             break;
                     }
                     break;

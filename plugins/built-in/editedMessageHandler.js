@@ -52,7 +52,13 @@ const blacklist = moderation.define('blacklist', {
 
 module.exports = {
     async execute() {
-        client.on("messageCreate", async msg => {
+        client.on("messageUpdate", async (oldMessage, newMessage) => {
+            let msg;
+            if(oldMessage.content === newMessage.content || newMessage.author.id == clientId){
+                return;
+            }else{
+                msg = newMessage;
+            }
             const optedOutIDs = await optOut.findAll();
             let optedOut = false;
             optedOutIDs.forEach(async ids => {
@@ -60,7 +66,7 @@ module.exports = {
                     optedOut = true;
                 }
             })
-            if (chatLog && msg.author.id != clientId) {
+            if (chatLog) {
                 let replied = "";
                 let redacted = `${msg.author.username}`;
                 if(msg.type == 19){
@@ -69,7 +75,8 @@ module.exports = {
                 if(optedOut){
                     redacted = "(Redacted)"
                 }
-                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] ${redacted} (${msg.channelId}): ${msg.content}${replied}`);
+                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] ${redacted} (${msg.channelId}): ${oldMessage.content}${replied} [Original Message]`);
+                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] ${redacted} (${msg.channelId}): ${msg.content}${replied} [Edited Message]`);
             }
             const channel = await client.channels.fetch(msg.channelId);
             let guildMember;
@@ -77,21 +84,14 @@ module.exports = {
                 guildMember = await msg.guild.members.fetch(msg.author.id);
             } catch { }
             const link = await links.findAll({});
-            const invite = await invites.findAll({});
             const blacklists = await blacklist.findAll({});
 
             // See if moderation checks are required.
             let linkCheck = false;
-            let inviteCheck = false;
             let blacklistCheck = false;
             link.forEach(async links => {
                 if (links.channelId == channel.id) {
                     linkCheck = true;
-                }
-            })
-            invite.forEach(async invites => {
-                if (invites.channelId == channel.id) {
-                    inviteCheck = true;
                 }
             })
             blacklists.forEach(async blacklist => {
@@ -100,25 +100,15 @@ module.exports = {
                 }
             })
             if (msg.author.id != client.user.id) {
-                if (linkCheck || inviteCheck) {
+                if (linkCheck) {
                     if (autoModAPI == false) {
                         const linkEnds = ['.com', '.org', '.net', '.xyz', '.co', '.ca', '.gg']; // coverage for (some) link types
-                        const blacklist = ['https://', 'http://']; // block all links
-                        const blacklistInvites = ['discord.gg/', 'discord.com']; // block invite links
+                        const blacklist = ['https://', 'http://', 'discord.gg/']; // block invite links
                         const blacklistCustom = ['/invite/'] // block specific directories (invite)
                         const whitelist = ['tenor.com/', 'cdn.discordapp.com/', 'cdn.discord.com/', 'cdn.discord.gg/', 'nexint.ca', 'nexint.org']; // whitelist specific domains (Whitelisted my domain lol)
                         let blacklisted = false;
-                        let linkOrMessage = "invite";
-                        let linkOrMessageCaps = "Invite";
                         for (let i = 0; i < blacklist.length; i++) {
-                            if (msg.content.includes(blacklist[i]) && linkCheck) {
-                                blacklisted = true;
-                                linkOrMessage = "link";
-                                linkOrMessageCaps = "Link";
-                            }
-                        }
-                        for (let i = 0; i < blacklistInvites.length; i++) {
-                            if (msg.content.includes(blacklistInvites[i]) && inviteCheck) {
+                            if (msg.content.includes(blacklist[i])) {
                                 blacklisted = true;
                             }
                         }
@@ -138,14 +128,14 @@ module.exports = {
                             }
                             if (whitelisted == false) {
                                 if (channel.permissionsFor(channel.guild.members.me).has(['ManageMessages'], true)) {
-                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] User \`${msg.author.id}\` (${msg.author.username}) tried sending a ${linkOrMessage} in the channel \`${channel.id}\` (${channel.name}). The ${linkOrMessage} was: \`${msg.content}\`.`);
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] User \`${msg.author.id}\` (${msg.author.username}) tried sending a link in the channel \`${channel.id}\` (${channel.name}). The link was: \`${msg.content}\`.`);
                                     msg.delete();
-                                    msg.channel.send(`${linkOrMessageCaps}s are not allowed here.`);
+                                    msg.channel.send("Links are not allowed here.");
                                 } else if (channel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
-                                    msg.channel.send("I tried deleting a message here, but I have no permissions!\n-# This is typically caused by bad bot permissions. Please give me the \"Manage Messages\" permission to enable this!");
-                                    console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a ${linkOrMessage} in the channel \`${channel.id}\` (${channel.name}), but the bot does not have the necessary permissions to delete the message. The link was: \`${msg.content}\`.`);
+                                    msg.channel.send("I tried deleting a message here, but I have no permissions!\n-# This is typically caused by bad bot permissions. Please give me the manage messages permission to enable this!");
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a link in the channel \`${channel.id}\` (${channel.name}), but the bot does not have the necessary permissions to delete the message. The link was: \`${msg.content}\`.`);
                                 } else {
-                                    console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a ${linkOrMessage} in the channel \`${channel.id}\` (${channel.name}), but the bot does not have the necessary permissions to delete or send messages. The link was: \`${msg.content}\`.`);
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a link in the channel \`${channel.id}\` (${channel.name}), but the bot does not have the necessary permissions to delete or send messages. The link was: \`${msg.content}\`.`);
                                 }
                             }
                         }

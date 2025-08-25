@@ -25,13 +25,13 @@ module.exports = {
 					guildMember = await interaction.guild.members.fetch(interaction.options.getString('id'));
 				} catch (error) {
 					if (error.rawError.message == "Unknown Member") {
-						console.log("[" + new Date().toLocaleTimeString() + `] [WARN] The user \`${interaction.user.id}\` (${interaction.user.username}) tried kicking ${guildMember.user.username} (${interaction.options.getString('id')}), but the member does not exist!`);
+						console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] The user \`${interaction.user.id}\` (${interaction.user.username}) tried kicking ${guildMember.user.username} (${interaction.options.getString('id')}), but the member does not exist!`);
 						await interaction.reply({ content: `The specified member does not exist or is already banned.`, flags: MessageFlags.Ephemeral });
 					} else if (error.rawError.message == "Invalid Form Body") {
-						console.log("[" + new Date().toLocaleTimeString() + `] [WARN] The user \`${interaction.user.id}\` (${interaction.user.username}) tried kicking someone, but the command is malformed!`);
+						console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] The user \`${interaction.user.id}\` (${interaction.user.username}) tried kicking someone, but the command is malformed!`);
 						await interaction.reply({ content: `The ID you inputted is not an ID.`, flags: MessageFlags.Ephemeral });
 					} else {
-						console.log("[" + new Date().toLocaleTimeString() + `] [ERROR] ${error}`)
+						console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] ${error}`)
 						await interaction.reply({ content: `Something seriously wrong happened. Error: ${error}`, flags: MessageFlags.Ephemeral })
 					}
 					return
@@ -41,12 +41,12 @@ module.exports = {
 						await interaction.reply({ content: `You don't have permission to kick ${guildMember.user.username}.`, flags: MessageFlags.Ephemeral });
 					} else {
 						let kickReason;
-						if (interaction.options.getString('reason') = null) {
+						if (interaction.options.getString('reason') == null) {
 							kickReason = "No reason given.";
 						} else {
 							kickReason = interaction.options.getString('reason');
 						}
-						guildMember.send(`You have been kicked from ${interaction.guild.name} for: ${kickReason}`).catch(console.log("[" + new Date().toLocaleTimeString() + `] [ERROR] I can't send messages to ${guildMember.user.username}!`));
+						guildMember.send(`You have been kicked from ${interaction.guild.name} for: ${kickReason}`).catch(console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] I can't send messages to ${guildMember.user.username}!`));
 						guildMember.kick({ reason: kickReason });
 						await interaction.reply({ content: `Kicked member "${guildMember.user.username}" for reason ${kickReason}`, flags: MessageFlags.Ephemeral });
 					}

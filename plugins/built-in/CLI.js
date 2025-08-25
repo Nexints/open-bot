@@ -1,6 +1,6 @@
 // Sample code to import a client and other constants.
 
-const { token, restart } = require('../../config.js');
+const { token, restart, botActivity, botStatus, botURL, botType } = require('./../../config.js');
 const { helpMenu, readline, spawn, exitHandler } = require('../../index.js');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -35,11 +35,11 @@ module.exports = {
                 } else {
                     page = 1;
                 }
-                console.log("[" + new Date().toLocaleTimeString() + `] [INFO]`, `\x1b[36m----------------- Help menu: (${page}/${Math.ceil((helpMenu.length) / 8)}) -----------------\x1b[0m`);
+                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO]`, `\x1b[36m----------------- Help menu: (${page}/${Math.ceil((helpMenu.length) / 8)}) -----------------\x1b[0m`);
                 for (let i = (page - 1) * 8; i < Math.min(8 + ((page - 1) * 8), helpMenu.length); i++) {
-                    console.log("[" + new Date().toLocaleTimeString() + '] [INFO] ' + helpMenu[i]);
+                    console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] ' + helpMenu[i]);
                 }
-                console.log("[" + new Date().toLocaleTimeString() + '] [INFO]', '\x1b[36m--------------------- Nex 2025 ---------------------\x1b[0m');
+                console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', '\x1b[36m--------------------- Nex 2025 ---------------------\x1b[0m');
                 return true;
             case "/info":
                 let info;
@@ -61,27 +61,27 @@ module.exports = {
                 } else {
                     info = 1;
                 }
-                console.log("[" + new Date().toLocaleTimeString() + `] [INFO]`, `\x1b[36m----------------- Info menu: (${info}/${Math.ceil((infoList.length) / 8)}) -----------------\x1b[0m`);
+                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO]`, `\x1b[36m----------------- Info menu: (${info}/${Math.ceil((infoList.length) / 8)}) -----------------\x1b[0m`);
                 for (let i = (info - 1) * 8; i < Math.min(8 + ((info - 1) * 8), infoList.length); i++) {
-                    console.log("[" + new Date().toLocaleTimeString() + '] [INFO] ' + infoList[i]);
+                    console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] ' + infoList[i]);
                 }
-                console.log("[" + new Date().toLocaleTimeString() + '] [INFO]', '\x1b[36m--------------------- Nex 2025 ---------------------\x1b[0m');
+                console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', '\x1b[36m--------------------- Nex 2025 ---------------------\x1b[0m');
                 return true;
             case "/stop":
-                console.log("[" + new Date().toLocaleTimeString() + '] [INFO] Stopping bot execution.');
-                console.log("[" + new Date().toLocaleTimeString() + '] [INFO] Closing bot connections.');
+                console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Stopping bot execution.');
+                console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Closing bot connections.');
                 client.destroy();
-                console.log("[" + new Date().toLocaleTimeString() + '] [INFO] Closing console access.');
+                console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Closing console access.');
                 readline.close();
                 await exitHandler();
                 return true;
             case "/restart":
-                console.log("[" + new Date().toLocaleTimeString() + '] [INFO] Restarting bot.');
-                console.log("[" + new Date().toLocaleTimeString() + '] [INFO] Closing bot connections.');
+                console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Restarting bot.');
+                console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Closing bot connections.');
                 client.destroy();
-                console.log("[" + new Date().toLocaleTimeString() + '] [INFO] Closing console access.');
+                console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Closing console access.');
                 readline.close();
-                console.log("[" + new Date().toLocaleTimeString() + '] [INFO] Stopping process.');
+                console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Stopping process.');
                 const child = spawn(restart, [''], {
                     detatched: true,
                     shell: true
@@ -90,9 +90,9 @@ module.exports = {
                 await exitHandler();
                 return true;
             case "/refresh":
-                console.log("[" + new Date().toLocaleTimeString() + '] [INFO] Logging out.');
+                console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Logging out.');
                 client.destroy();
-                console.log("[" + new Date().toLocaleTimeString() + '] [INFO] Logging in.');
+                console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Logging in.');
                 client.login(token);
                 return true;
             default:

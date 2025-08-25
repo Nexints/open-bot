@@ -2,15 +2,15 @@ const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 
 const Sequelize = require('sequelize');
 
-const sequelize = new Sequelize('database', 'user', 'password', {
+const moderation = new Sequelize('database', 'user', 'password', {
 	host: 'localhost',
 	dialect: 'sqlite',
 	logging: false,
 	// SQLite only
-	storage: 'database.sqlite',
+	storage: 'moderation.sqlite',
 });
 
-const links = sequelize.define('links', {
+const links = moderation.define('links', {
 	channelId: {
 		type: Sequelize.STRING,
 		unique: true,

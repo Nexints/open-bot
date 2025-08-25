@@ -51,16 +51,19 @@ module.exports = {
             await chatLog.destroy({ where: { author: interaction.user.id } })
             await users.destroy({ where: { author: interaction.user.id } })
             await interaction.reply({
-                content: "Opted out from data collection! - Note that your ID is still stored to opt you out.\n\n-# Certain services will not work for you. Moderation functions in this server still requires your username.",
+                content: "Opted out from data collection! - Note that your ID is still stored to opt you out.\n\n-# Certain services will not work for you. Moderation functions in this server still require your username and ID.",
                 flags: MessageFlags.Ephemeral
             });
+            console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] ${interaction.user.id} has opted out.`);
         }
         catch (error) {
             if (error.name === 'SequelizeUniqueConstraintError') {
                 await interaction.reply({ content: "Already opted out.", flags: MessageFlags.Ephemeral });
+                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] ${interaction.user.id} has already opted out.`);
                 return
             }
             await interaction.reply("Something went wrong.");
+            console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] Something went wrong while trying to opt-out ${interaction.user.id}!`);
         }
     },
 };

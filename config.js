@@ -1,10 +1,10 @@
 // Pre-requisits. Do not touch these.
-const { Collection, Events, GatewayIntentBits, PermissionsBitField, Partials, MessageFlags } = require('discord.js');
+const { Collection, Events, GatewayIntentBits, PermissionsBitField, Partials, MessageFlags, ActivityType } = require('discord.js');
 let date = new Date();
 
 module.exports = {
 
-    // These may need to be changed.
+    // These can be changed, depending on your needs.
     token: "CHANGEME", // Bot Token
     clientId: "CHANGEME", // Bot Client ID
     devID: "CHANGEME", // Dev ID
@@ -19,11 +19,25 @@ module.exports = {
         Partials.Channel,
         Partials.Message
     ],
-    logFormat: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`, // Log format of the bot
-    // Note that this command is buggy, and may not work.
-    restart: "start start.bat", // This would be different on a linux based system. It would be "sh start.sh".
+    botActivity: "@Nexint on YT!",
+    botStatus: "online",
+    botURL: "https://twitch.tv/nexints", // Bot's URL for streaming. Automatically credits me if the botType is streaming!
+    botType: ActivityType.Listening,
+
+    // Note that these commands are buggy, and may not work.
+    autoModAPI: false,
+    autoModAPIToken: "", // Prodeode's Auto Mod Token - Optional, but enhanced security!
+    restart: "start start.bat", // Restart command. This would be different on a linux based system. It would be "sh start.sh".
+
+    // These can be changed, but only if you know what you are doing.
+    dateOptions: {
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+    },
+    logFormat: `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}-${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`, // Log format of the bot
 
     // Do not change these. Used for version checking and updating.
-    version: "0.0.2",
-    versionID: 2,
+    version: "0.1.0",
+    versionID: 3,
 }

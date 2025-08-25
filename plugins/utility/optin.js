@@ -26,8 +26,10 @@ module.exports = {
         const rowCount = await optOut.destroy({ where: { author: interaction.user.id } })
             if (!rowCount) {
                 await interaction.reply({ content: "Already opted in.", flags: MessageFlags.Ephemeral });
+                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] ${interaction.user.id} is already opted in.`);
                 return
             }
             await interaction.reply({ content: "Opted in to data collection.", flags: MessageFlags.Ephemeral });
+            console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] ${interaction.user.id} has opted in.`);
     },
 };
