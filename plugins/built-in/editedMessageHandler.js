@@ -111,6 +111,7 @@ module.exports = {
                 if (optedOut) {
                     redacted = "(Redacted)"
                 }
+                logChannel.send("[" + DateFormatter.format(Date.now()) + `] [INFO] ${redacted} (${oldMessage.channelId}): ${oldMessage.content}${replied} [Original]`);
                 logChannel.send("[" + DateFormatter.format(Date.now()) + `] [INFO] ${redacted} (${msg.channelId}): ${msg.content}${replied}`);
             }
 
