@@ -74,6 +74,13 @@ module.exports = {
             },
         });
 
+        const logging = moderation.define('logging', {
+            channelId: {
+                type: Sequelize.STRING,
+                unique: true,
+            },
+        });
+
         const users = devdb.define('users', {
             author: {
                 type: Sequelize.STRING,
@@ -110,6 +117,7 @@ module.exports = {
         optOut.sync();
         links.sync();
         invites.sync();
+        logging.sync();
         blacklist.sync();
     }
 }

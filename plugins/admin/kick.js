@@ -46,9 +46,14 @@ module.exports = {
 						} else {
 							kickReason = interaction.options.getString('reason');
 						}
-						guildMember.send(`You have been kicked from ${interaction.guild.name} for: ${kickReason}`).catch(console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] I can't send messages to ${guildMember.user.username}!`));
+						try{
+							guildMember.send(`You have been kicked from ${interaction.guild.name} for: ${kickReason}`)
+						}catch{
+							console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] I can't send messages to ${guildMember.user.username}!`)
+						}
 						guildMember.kick({ reason: kickReason });
 						await interaction.reply({ content: `Kicked member "${guildMember.user.username}" for reason ${kickReason}`, flags: MessageFlags.Ephemeral });
+						console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) kicked ${guildMember.user.username} (${interaction.options.getString('id')}).`);
 					}
 				} else {
 					await interaction.reply({ content: `I don't have permission to kick ${guildMember.user.username}`, flags: MessageFlags.Ephemeral });

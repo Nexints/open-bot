@@ -44,6 +44,13 @@ const invites = moderation.define('invites', {
     },
 });
 
+const logging = moderation.define('logging', {
+    channelId: {
+        type: Sequelize.STRING,
+        unique: true,
+    },
+});
+
 const blacklist = moderation.define('blacklist', {
     channelId: {
         type: Sequelize.STRING,
@@ -134,6 +141,19 @@ module.exports = {
                         .setName('value')
                         .setRequired(true)
                         .setDescription('Enable or disable invites?')
+                        .addChoices(
+                            { name: 'Enable', value: 'enable' },
+                            { name: 'Disable', value: 'disable' },
+                        )))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('logging')
+                .setDescription('Enable or disable logging functionality for the entire server in this channel.')
+                .addStringOption(option =>
+                    option
+                        .setName('value')
+                        .setRequired(true)
+                        .setDescription('Enable or disable logging?')
                         .addChoices(
                             { name: 'Enable', value: 'enable' },
                             { name: 'Disable', value: 'disable' },
@@ -253,7 +273,7 @@ module.exports = {
 
                                 if (!rowCount) {
                                     await interaction.reply({ content: "Invites are already enabled here.", flags: MessageFlags.Ephemeral });
-                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried enabling invites in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but links are already enabled here.`);
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried enabling invites in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but invites are already enabled here.`);
                                     return;
                                 }
 
@@ -269,15 +289,52 @@ module.exports = {
                                     if (interaction.channel.permissionsFor(interaction.guild.members.me).has(['ManageMessages'], true) == false && interaction.channel.permissionsFor(interaction.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
                                         await interaction.channel.send({ content: "-# Please give me permissions to disable links and invites! I need the permission \"Manage Messages\"." });
                                     };
-                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) disabled links and invites in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) disabled invites in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
                                 } catch (error) {
                                     if (error.name === 'SequelizeUniqueConstraintError') {
-                                        await interaction.reply({ content: "Links or invites are already disabled here.", flags: MessageFlags.Ephemeral });
-                                        console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disabling links and invites in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but links are already disabled here.`);
+                                        await interaction.reply({ content: "Invitesnvites are already disabled here.", flags: MessageFlags.Ephemeral });
+                                        console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disabling invites in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but invites are already disabled here.`);
                                         return;
                                     }
-                                    console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disabling links and invites in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but something seriously wrong happened. Error: \'${error}\'`);
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disabling invites in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but something seriously wrong happened. Error: \'${error}\'`);
                                 }
+                                break;
+                        }
+                        break;
+                    case "logging":
+                        switch (interaction.options.getString('value')) {
+                            case "enable":
+                                try {
+                                    await logging.create({
+                                        channelId: interaction.channelId,
+                                    });
+                                    await interaction.reply("Logging is now enabled in this channel, for the server.");
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) enabled logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
+                                    if (interaction.channel.permissionsFor(interaction.guild.members.me).has(['ManageMessages'], true) == false && interaction.channel.permissionsFor(interaction.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
+                                        await interaction.channel.send({ content: "-# Please give me permissions to disable links and invites! I need the permission \"Manage Messages\"." });
+                                    };
+                                } catch (error) {
+                                    if (error.name === 'SequelizeUniqueConstraintError') {
+                                        await interaction.reply({ content: "Logging is already enabled here.", flags: MessageFlags.Ephemeral });
+                                        console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried enabling logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but logging is already enabled here.`);
+                                        return;
+                                    }
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] The user \`${interaction.user.id}\` (${interaction.user.username}) tried enabling logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but something seriously wrong happened. Error: \'${error}\'`);
+                                }
+                                break;
+                            case "disable":
+                                const rowCount = await logging.destroy({
+                                    where: {
+                                        channelId: interaction.channelId,
+                                    }
+                                });
+                                if (!rowCount) {
+                                    await interaction.reply({ content: "Logging is already disabled here.", flags: MessageFlags.Ephemeral });
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disabling logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but logging is already disabled here.`);
+                                    return;
+                                }
+                                await interaction.reply({ content: "Logging is now disabled." });
+                                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) disabled logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
                                 break;
                         }
                         break;

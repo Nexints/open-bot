@@ -1,28 +1,6 @@
 const { SlashCommandBuilder, MessageFlags, PermissionsBitField } = require('discord.js');
 
-const Sequelize = require('sequelize');
-
 const { devID } = require('../../config.js');
-
-const devdb = new Sequelize('database', 'user', 'password', {
-    host: 'localhost',
-    dialect: 'sqlite',
-    logging: false,
-    // SQLite only
-    storage: 'devdb.sqlite',
-});
-
-const updates = devdb.define('updates', {
-    channelId: {
-        type: Sequelize.STRING,
-    },
-    channel: {
-        type: Sequelize.STRING,
-    },
-    type: {
-        type: Sequelize.STRING,
-    },
-});
 
 module.exports = {
     cooldown: 5,
@@ -52,6 +30,7 @@ module.exports = {
                     content: "This channel is a DM, or is otherwise inaccessable / invalid. No message has been sent.\n\nError: " + error,
                     flags: MessageFlags.Ephemeral
                 });
+                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] User ${interaction.user.id} (${interaction.user.username}) tried sending the message ${updateMessage}, but the channel ${interaction.options.getString('channel')} was inaccessable or invalid!`);
                 return;
             }
             if (channel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true) && interaction.member.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
@@ -59,11 +38,13 @@ module.exports = {
                     content: "Sent the message \"" + updateMessage + "\" to the channel " + interaction.options.getString('channel') + "!",
                     flags: MessageFlags.Ephemeral
                 });
+                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] User ${interaction.user.id} (${interaction.user.username}) sent the message ${updateMessage} in the channel ${interaction.options.getString('channel')}!`);
             } else {
                 await interaction.reply({
                     content: "You or I don't have permissions to send messages as the bot here.",
                     flags: MessageFlags.Ephemeral
                 });
+                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] User ${interaction.user.id} (${interaction.user.username}) tried sending the message ${updateMessage} in the channel ${interaction.options.getString('channel')}, but either the bot owner or the bot itself doesn't have permission!`);
             }
 
         } else {

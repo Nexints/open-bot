@@ -46,7 +46,11 @@ module.exports = {
 						} else {
 							banReason = interaction.options.getString('reason');
 						}
-						guildMember.send(`You have been banned from ${interaction.guild.name} for: ${banReason}`).catch(console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] I can't send messages to ${guildMember.user.username}!`));
+						try{
+							guildMember.send(`You have been banned from ${interaction.guild.name} for: ${kickReason}`)
+						}catch{
+							console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] I can't send messages to ${guildMember.user.username}!`)
+						}
 						guildMember.ban({ reason: banReason });
 						await interaction.reply({ content: `Banned member "${guildMember.user.username}" for reason ${banReason}`, flags: MessageFlags.Ephemeral });
 						console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) banned ${guildMember.user.username} (${interaction.options.getString('id')}).`);

@@ -38,6 +38,6 @@ module.exports = {
     logFormat: `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}-${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`, // Log format of the bot
 
     // Do not change these. Used for version checking and updating.
-    version: "0.1.0",
-    versionID: 3,
+    version: "0.1.1",
+    versionID: 4,
 }

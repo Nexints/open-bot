@@ -38,6 +38,13 @@ const invites = moderation.define('invites', {
     },
 });
 
+const logging = moderation.define('logging', {
+    channelId: {
+        type: Sequelize.STRING,
+        unique: true,
+    },
+});
+
 const blacklist = moderation.define('blacklist', {
     channelId: {
         type: Sequelize.STRING,
@@ -53,6 +60,8 @@ const blacklist = moderation.define('blacklist', {
 module.exports = {
     async execute() {
         client.on("messageCreate", async msg => {
+
+            // Bot-wide message logging functionality!
             const optedOutIDs = await optOut.findAll();
             let optedOut = false;
             optedOutIDs.forEach(async ids => {
@@ -63,14 +72,42 @@ module.exports = {
             if (chatLog && msg.author.id != clientId) {
                 let replied = "";
                 let redacted = `${msg.author.username}`;
-                if(msg.type == 19){
+                if (msg.type == 19) {
                     replied = " [Replied]"
                 }
-                if(optedOut){
+                if (optedOut) {
                     redacted = "(Redacted)"
                 }
                 console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] ${redacted} (${msg.channelId}): ${msg.content}${replied}`);
             }
+
+            // Server-side message logging functionality!
+            // Will not be deprecated.
+            const loggedIDs = await logging.findAll();
+            let logged = false;
+            let loggedChannelID;
+            loggedIDs.forEach(async loggedChannel => {
+                let channel = client.channels.cache.get(loggedChannel.channelId)
+                try {
+                    if (channel.guildId == msg.guild.id) {
+                        logged = true;
+                        loggedChannelID = loggedChannel.channelId;
+                    }
+                } catch { } // ignore errors caused by DM'd messages lol
+            })
+            if (logged && msg.author.id != clientId) {
+                const logChannel = await client.channels.fetch(loggedChannelID);
+                let replied = "";
+                let redacted = `${msg.author.username}`;
+                if (msg.type == 19) {
+                    replied = " [Replied]"
+                }
+                if (optedOut) {
+                    redacted = "(Redacted)"
+                }
+                logChannel.send("[" + DateFormatter.format(Date.now()) + `] ${redacted} (${msg.channelId}): ${msg.content}${replied}`);
+            }
+
             const channel = await client.channels.fetch(msg.channelId);
             let guildMember;
             try {
