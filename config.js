@@ -39,5 +39,5 @@ module.exports = {
 
     // Do not change these. Used for version checking and updating.
     version: "0.1.1",
-    versionID: 4,
+    versionID: 5,
 }

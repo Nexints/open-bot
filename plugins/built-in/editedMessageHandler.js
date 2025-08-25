@@ -38,6 +38,13 @@ const invites = moderation.define('invites', {
     },
 });
 
+const logging = moderation.define('logging', {
+    channelId: {
+        type: Sequelize.STRING,
+        unique: true,
+    },
+});
+
 const blacklist = moderation.define('blacklist', {
     channelId: {
         type: Sequelize.STRING,
