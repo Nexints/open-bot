@@ -25,9 +25,11 @@ module.exports = {
     botType: ActivityType.Listening,
 
     // Note that these commands are buggy, and may not work.
+    restart: "start start.bat", // Restart command. This would be different on a linux based system. It would be "sh start.sh".
+
+    // Known non-working commands. May end up working at a future date.
     autoModAPI: false,
     autoModAPIToken: "", // Prodeode's Auto Mod Token - Optional, but enhanced security!
-    restart: "start start.bat", // Restart command. This would be different on a linux based system. It would be "sh start.sh".
 
     // These can be changed, but only if you know what you are doing.
     dateOptions: {
@@ -38,6 +40,7 @@ module.exports = {
     logFormat: `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}-${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`, // Log format of the bot
 
     // Do not change these. Used for version checking and updating.
-    version: "0.1.1",
-    versionID: 4,
+    version: "0.1.2",
+    versionID: 6,
+    botChannel: "beta"
 }

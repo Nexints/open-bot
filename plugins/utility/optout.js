@@ -42,7 +42,7 @@ module.exports = {
     cooldown: 5,
     data: new SlashCommandBuilder()
         .setName('opt-out')
-        .setDescription('Opt out from data collection. Disables certain features and delets all data related to you.'),
+        .setDescription('Opt out from data collection. Disables certain features and anonymizes all future data.'),
     async execute(interaction) {
         try {
             await optOut.create({

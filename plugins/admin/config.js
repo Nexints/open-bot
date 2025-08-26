@@ -238,7 +238,7 @@ module.exports = {
                                     return;
                                 }
 
-                                await interaction.reply("Links and invites are now enabled.");
+                                await interaction.reply("Links are now enabled.");
                                 console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) enabled links in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
                                 break;
                             case "disable":
@@ -292,7 +292,7 @@ module.exports = {
                                     console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) disabled invites in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
                                 } catch (error) {
                                     if (error.name === 'SequelizeUniqueConstraintError') {
-                                        await interaction.reply({ content: "Invitesnvites are already disabled here.", flags: MessageFlags.Ephemeral });
+                                        await interaction.reply({ content: "Invites are already disabled here.", flags: MessageFlags.Ephemeral });
                                         console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disabling invites in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but invites are already disabled here.`);
                                         return;
                                     }

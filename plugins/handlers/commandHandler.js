@@ -1,6 +1,6 @@
 // Sample code to import a client and other constants.
 
-const { token, restart, botActivity, botStatus, botURL, botType } = require('./../../config.js');
+const { token, restart, botActivity, botStatus, botURL, botType } = require('../../config.js');
 const { helpMenu, readline, spawn, exitHandler } = require('../../index.js');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -11,13 +11,17 @@ module.exports = {
     help() {
         return [
             'Built-in:',
-            '/stop - Closes bot',
-            '/help (page) - Opens this help menu. Can be added to by plugins.',
+            '/help (page) - Opens this help menu.',
+            '/h (page) - Mirror of /help.',
+            'The help menu can be expanded upon by other plugins.',
             '/info (page) - Opens a neat info menu!',
             'This function can\'t be expanded upon by other plugins.',
             '/refresh - Refreshes the bot (logs off and on Discord).',
-            '/restart - Restarts the bot.',
-            'This help menu is only for the console.',
+            '/reload - Mirror of /refresh',
+            '/restart - Restarts the bot. Recommended when updating.',
+            '/r - Mirror of /restart',
+            '/stop - Closes bot.',
+            '/end - Mirror of /stop.',
         ];
     },
     // Example of a command in the CLI (command line) of the bot.
@@ -25,6 +29,7 @@ module.exports = {
     // Expected Return: true or false depending on if the command was valid or not. Otherwise, this breaks the code used to determine if a command is valid or not.
     async command(command) {
         switch (command.split(" ")[0].toLowerCase()) {
+            case "/h":
             case "/help":
                 let page;
                 if (command.split(" ")[1] != undefined) {
@@ -48,8 +53,6 @@ module.exports = {
                     'The first number (X.0.0) is the major release.',
                     'The second number (0.X.0) is the minor release.',
                     'The third number (0.0.X) is the build #.',
-                    'Typically, only the minor or major releases are',
-                    'stable for production workflows.',
                     'Built-in plugins aside from "built-in" are typically',
                     'not updated as often, and may be unstable.',
                 ];
@@ -67,6 +70,7 @@ module.exports = {
                 }
                 console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', '\x1b[36m--------------------- Nex 2025 ---------------------\x1b[0m');
                 return true;
+            case "/end":
             case "/stop":
                 console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Stopping bot execution.');
                 console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Closing bot connections.');
@@ -75,6 +79,7 @@ module.exports = {
                 readline.close();
                 await exitHandler();
                 return true;
+            case "/r":
             case "/restart":
                 console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Restarting bot.');
                 console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Closing bot connections.');
@@ -89,11 +94,13 @@ module.exports = {
                 child.unref()
                 await exitHandler();
                 return true;
+            case "/reload":
             case "/refresh":
                 console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Logging out.');
                 client.destroy();
                 console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Logging in.');
                 client.login(token);
+                console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', '\x1b[36m--------------------- Nex 2025 ---------------------\x1b[0m');
                 return true;
             default:
                 return false;

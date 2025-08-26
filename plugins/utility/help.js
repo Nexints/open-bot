@@ -20,7 +20,7 @@ module.exports = {
 			}
 			if (interaction.member.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
 				await interaction.channel.send({
-					content: "**Admin commands:**\n- /config blacklist: Configures the channel blacklist with either a strict or lenient word block.\n- /config links: Configures whether links should be allowed here or not.\n- /config invites: Configures whether invites should be allowed here or not.\n- /config updates: Configures whether or not updates from the bot owner should be sent to that channel, and there are different channels to use.\n- /config logging: Configures whether logging is enabled or not for the entire server. The channel where this message is ran will be the channel where logs are put. Multiple log channels are supported.\n-# More admin commands are to be added at a later time."
+					content: "**Admin commands:**\n- /config blacklist: Configures the channel blacklist with either a strict or lenient word block.\n- /config links: Configures whether links should be allowed here or not.\n- /config invites: Configures whether invites should be allowed here or not.\n- /config updates: Configures whether or not updates from the bot owner should be sent to that channel, and there are different channels to use.\n- /config logging: Configures whether logging is enabled or not for the entire server. The channel where this message is ran will be the channel where logs are put. Moderation events will be put here as well.\n-# More admin commands are to be added at a later time."
 				})
 			}
 			if (interaction.member.permissions.has(PermissionsBitField.Flags.BanMembers) || interaction.member.permissions.has(PermissionsBitField.Flags.KickMembers)) {
@@ -42,7 +42,7 @@ module.exports = {
 				})
 			}
 			await interaction.channel.send({
-				content: "**Utility commands:**\n- /help: Provides this help menu.\n- /info: Provides an info manual about the bot.\n- /optout: Opts out of data collection. Moderation services still require your data.\n- /optin: Opts into data collection."
+				content: "**Utility commands:**\n- /help: Provides this help menu.\n- /info: Provides an info manual about the bot.\n- /optout: Opts out of data collection. Moderation services still require your data, and this is per-user. (Server / Bot owners should opt-out in config.js!)\n- /optin: Opts into data collection."
 			})
 			await interaction.channel.send({
 				content: "**Fun commands:**\n- /badapple: Sends a bad apple YT URL. Only works if links aren't blacklisted."

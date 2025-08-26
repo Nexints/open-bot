@@ -27,7 +27,7 @@ module.exports = {
 
 				if (now < expirationTime) {
 					const expiredTimestamp = Math.round(expirationTime / 1000);
-					return interaction.reply({ content: `Please wait, you are on a cooldown for \`${command.data.name}\`. You can use it again <t:${expiredTimestamp}:R>.`, ephemeral: true });
+					return interaction.reply({ content: `Please wait, you are on a cooldown for \`${command.data.name}\`. You can use it again <t:${expiredTimestamp}:R>.`, flags: MessageFlags.Ephemeral });
 				}
 			}
 
@@ -40,9 +40,9 @@ module.exports = {
 				try {
 
 					if (interaction.replied || interaction.deferred) {
-						await interaction.followUp({ content: 'There was an error while executing this command! Please check the console logs.', ephemeral: true });
+						await interaction.followUp({ content: 'There was an error while executing this command! Please check the console logs.', flags: MessageFlags.Ephemeral });
 					} else {
-						await interaction.reply({ content: 'There was an error while executing this command! Please check the console logs.', ephemeral: true });
+						await interaction.reply({ content: 'There was an error while executing this command! Please check the console logs.', flags: MessageFlags.Ephemeral });
 					}
 					console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] An error happened while processing a command!`);
 					console.error(error);

@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
-const { chatLog } = require('./../../index.js')
-const { autoModAPI, autoModAPIToken, clientId } = require('./../../config.js');
+const { chatLog } = require('../../index.js')
+const { autoModAPI, autoModAPIToken, clientId } = require('../../config.js');
 const moderation = new Sequelize('database', 'user', 'password', {
     host: 'localhost',
     dialect: 'sqlite',
@@ -32,6 +32,13 @@ const links = moderation.define('links', {
 });
 
 const invites = moderation.define('invites', {
+    channelId: {
+        type: Sequelize.STRING,
+        unique: true,
+    },
+});
+
+const logging = moderation.define('logging', {
     channelId: {
         type: Sequelize.STRING,
         unique: true,
@@ -89,25 +96,41 @@ module.exports = {
             let loggedChannelID;
             loggedIDs.forEach(async loggedChannel => {
                 let channel = client.channels.cache.get(loggedChannel.channelId)
-                if (channel.guildId == msg.guild.id) {
-                    logged = true;
-                    loggedChannelID = loggedChannel.channelId;
-                }
+                try {
+                    if (channel.guildId == msg.guild.id) {
+                        logged = true;
+                        loggedChannelID = loggedChannel.channelId;
+                    }
+                } catch {}
             })
+            let logChannel;
+            const channel = await client.channels.fetch(msg.channelId);
             if (logged && msg.author.id != clientId) {
-                const logChannel = await client.channels.fetch(loggedChannelID);
-                let replied = "";
-                let redacted = `${msg.author.username}`;
-                if (msg.type == 19) {
-                    replied = " [Replied]"
+                logChannel = await client.channels.fetch(loggedChannelID);
+                if (logChannel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
+                    let replied = "";
+                    let redacted = `${msg.author.username}`;
+                    if (msg.type == 19) {
+                        replied = " [Replied]"
+                    }
+                    if (optedOut) {
+                        redacted = "(Redacted)"
+                    }
+                    if(!(oldMessage.content == null)){
+                        logChannel.send(`(${msg.url}) ${redacted}: ${oldMessage.cleanContent}${replied} [Original]`);
+                    }else{
+                        logChannel.send(`[ERROR] No original message was cached for ${msg.url}!`);
+                    }
+                    logChannel.send(`(${msg.url}) ${redacted}: ${msg.cleanContent}${replied} [Edited]`);
+                } else {
+                    await logging.destroy({
+                        where: {
+                            channelId: loggedChannelID,
+                        }
+                    });
                 }
-                if (optedOut) {
-                    redacted = "(Redacted)"
-                }
-                logChannel.send("[" + DateFormatter.format(Date.now()) + `] [INFO] ${redacted} (${msg.channelId}): ${msg.content}${replied}`);
             }
 
-            const channel = await client.channels.fetch(msg.channelId);
             let guildMember;
             try {
                 guildMember = await msg.guild.members.fetch(msg.author.id);
@@ -174,14 +197,23 @@ module.exports = {
                             }
                             if (whitelisted == false) {
                                 if (channel.permissionsFor(channel.guild.members.me).has(['ManageMessages'], true)) {
+                                    if (logged && msg.author.id != clientId && logChannel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
+                                        logChannel.send("[" + DateFormatter.format(Date.now()) + `] [INFO] User \`${msg.author.id}\` (${msg.author.username}) tried sending a ${linkOrMessage} in the channel ${channel}. The ${linkOrMessage} was: \`${msg.content}\`.`);
+                                    }
                                     console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] User \`${msg.author.id}\` (${msg.author.username}) tried sending a ${linkOrMessage} in the channel \`${channel.id}\` (${channel.name}). The ${linkOrMessage} was: \`${msg.content}\`.`);
                                     msg.delete();
                                     msg.channel.send(`${linkOrMessageCaps}s are not allowed here.`);
                                 } else if (channel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
                                     msg.channel.send("I tried deleting a message here, but I have no permissions!\n-# This is typically caused by bad bot permissions. Please give me the \"Manage Messages\" permission to enable this!");
                                     console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a ${linkOrMessage} in the channel \`${channel.id}\` (${channel.name}), but the bot does not have the necessary permissions to delete the message. The link was: \`${msg.content}\`.`);
+                                    if (logged && msg.author.id != clientId && logChannel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
+                                        logChannel.send("[" + DateFormatter.format(Date.now()) + `] [WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a ${linkOrMessage} in the channel ${channel}, but the bot does not have the necessary permissions to delete the message. The link was: \`${msg.content}\`.`);
+                                    }
                                 } else {
                                     console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a ${linkOrMessage} in the channel \`${channel.id}\` (${channel.name}), but the bot does not have the necessary permissions to delete or send messages. The link was: \`${msg.content}\`.`);
+                                    if (logged && msg.author.id != clientId && logChannel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
+                                        logChannel.send("[" + DateFormatter.format(Date.now()) + `] [WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a ${linkOrMessage} in the channel ${channel}, but the bot does not have the necessary permissions to delete or send messages. The link was: \`${msg.content}\`.`);
+                                    }
                                 }
                             }
                         }
@@ -210,11 +242,20 @@ module.exports = {
                                 console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] User \`${msg.author.id}\` (${msg.author.username}) tried sending a blacklisted word in the channel \`${channel.id}\` (${channel.name}). The word was: \`${msg.content}\`.`);
                                 msg.delete();
                                 msg.channel.send("This word is blacklisted.");
+                                if (logged && msg.author.id != clientId && logChannel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
+                                    logChannel.send("[" + DateFormatter.format(Date.now()) + `] [INFO] User \`${msg.author.id}\` (${msg.author.username}) tried sending a ${linkOrMessage} in the channel ${channel}. The ${linkOrMessage} was: \`${msg.content}\`.`);
+                                }
                             } else if (channel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
                                 msg.channel.send("I tried deleting a message here, but I have no permissions!\n-# This is typically caused by bad bot permissions. Please give me the manage messages permission to enable this!");
                                 console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a blacklisted word in the channel \`${channel.id}\` (${channel.name}), but the bot does not have the necessary permissions to delete the message. The word was: \`${msg.content}\`.`);
+                                if (logged && msg.author.id != clientId && logChannel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
+                                    logChannel.send("[" + DateFormatter.format(Date.now()) + `] [WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a blacklisted word in the channel ${channel}, but the bot does not have the necessary permissions to delete the message. The word was: \`${msg.content}\`.`);
+                                }
                             } else {
                                 console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a blacklisted word in the channel \`${channel.id}\` (${channel.name}), but the bot does not have the necessary permissions to delete or send messages. The word was: \`${msg.content}\`.`);
+                                if (logged && msg.author.id != clientId && logChannel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
+                                    logChannel.send("[" + DateFormatter.format(Date.now()) + `] [WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a blacklisted word in the channel ${channel}, but the bot does not have the necessary permissions to delete or send messages. The word was: \`${msg.content}\`.`);
+                                }
                             }
                         }
                     }

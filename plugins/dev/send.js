@@ -33,7 +33,7 @@ module.exports = {
                 console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] User ${interaction.user.id} (${interaction.user.username}) tried sending the message ${updateMessage}, but the channel ${interaction.options.getString('channel')} was inaccessable or invalid!`);
                 return;
             }
-            if (channel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true) && interaction.member.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
+            if (channel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true) && !(channel.permissionsFor(interaction.user) == null) && channel.permissionsFor(interaction.user).has(['ManageChannels'], true) ) {
                 channel.send(updateMessage); await interaction.reply({
                     content: "Sent the message \"" + updateMessage + "\" to the channel " + interaction.options.getString('channel') + "!",
                     flags: MessageFlags.Ephemeral
