@@ -51,6 +51,13 @@ const logging = moderation.define('logging', {
     },
 });
 
+const modlog = moderation.define('modlog', {
+    channelId: {
+        type: Sequelize.STRING,
+        unique: true,
+    },
+});
+
 const blacklist = moderation.define('blacklist', {
     channelId: {
         type: Sequelize.STRING,
@@ -157,12 +164,25 @@ module.exports = {
                         .addChoices(
                             { name: 'Enable', value: 'enable' },
                             { name: 'Disable', value: 'disable' },
+                        )))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('modlog')
+                .setDescription('Enable or disable moderator logging functionality in this channel.')
+                .addStringOption(option =>
+                    option
+                        .setName('value')
+                        .setRequired(true)
+                        .setDescription('Enable or disable logging?')
+                        .addChoices(
+                            { name: 'Enable', value: 'enable' },
+                            { name: 'Disable', value: 'disable' },
                         ))),
     async execute(interaction) {
         // interaction.user is the object representing the User who ran the command
         // interaction.member is the GuildMember object, which represents the user in the specific guild
         if (interaction.guild != null) {
-            if (interaction.member.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
+            if (interaction.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
                 switch (interaction.options.getSubcommand()) {
                     case "updates":
                         switch (interaction.options.getString('value')) {
@@ -335,6 +355,43 @@ module.exports = {
                                 }
                                 await interaction.reply({ content: "Logging is now disabled." });
                                 console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) disabled logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
+                                break;
+                        }
+                        break;
+                    case "modlog":
+                        switch (interaction.options.getString('value')) {
+                            case "enable":
+                                try {
+                                    await modlog.create({
+                                        channelId: interaction.channelId,
+                                    });
+                                    await interaction.reply("Mod logging is now enabled in this channel, for the server.");
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) enabled mod logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
+                                    if (interaction.channel.permissionsFor(interaction.guild.members.me).has(['ManageMessages'], true) == false && interaction.channel.permissionsFor(interaction.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
+                                        await interaction.channel.send({ content: "-# Please give me permissions to disable links and invites! I need the permission \"Manage Messages\"." });
+                                    };
+                                } catch (error) {
+                                    if (error.name === 'SequelizeUniqueConstraintError') {
+                                        await interaction.reply({ content: "Mod logging is already enabled here.", flags: MessageFlags.Ephemeral });
+                                        console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried enabling mod logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but logging is already enabled here.`);
+                                        return;
+                                    }
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] The user \`${interaction.user.id}\` (${interaction.user.username}) tried enabling mod logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but something seriously wrong happened. Error: \'${error}\'`);
+                                }
+                                break;
+                            case "disable":
+                                const rowCount = await modlog.destroy({
+                                    where: {
+                                        channelId: interaction.channelId,
+                                    }
+                                });
+                                if (!rowCount) {
+                                    await interaction.reply({ content: "Mod logging is already disabled here.", flags: MessageFlags.Ephemeral });
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disabling mod logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but logging is already disabled here.`);
+                                    return;
+                                }
+                                await interaction.reply({ content: "Mod logging is now disabled." });
+                                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) disabled mod logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
                                 break;
                         }
                         break;

@@ -1,4 +1,4 @@
-const { Client, Collection, Events, GatewayIntentBits, PermissionsBitField, Partials, MessageFlags } = require('discord.js');
+const { Collection, Events, MessageFlags } = require('discord.js');
 
 module.exports = {
     async execute() {
