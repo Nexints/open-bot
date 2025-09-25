@@ -3,7 +3,7 @@
 > 
 > This is PRE-PRE-ALPHA SOFTWARE! While I can try to fix as many bugs as possible, I am not liable for any problems this server software has. Use at your own risk.
 >
-> PLEASE host your own instance of this bot! The main instance has backdoors and test commands inserted by myself for testing purposes that will be deleted in the future. Hosting your own instance is safe, as you have access to the backdoors and test commands I created. Expected removal date: V1.0.0
+> PLEASE host your own instance of this bot! The main instance, while most backdoors are removed, may be unstable if many people try to use it.
 
 # OpenBot
 
