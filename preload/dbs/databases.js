@@ -1,5 +1,5 @@
 module.exports = {
-    execute() {
+    async execute() {
 
         // Able to use sequelize databases in plugins and have them loaded.
         const Sequelize = require('sequelize');
@@ -80,6 +80,40 @@ module.exports = {
                 unique: true,
             },
         });
+        
+        const modlog = moderation.define('modlog', {
+            channelId: {
+                type: Sequelize.STRING,
+                unique: true,
+            },
+        });
+
+        const messages = moderation.define('messages', {
+            userId: {
+                type: Sequelize.STRING,
+            },
+            content: {
+                type: Sequelize.STRING,
+            },
+            messageId: {
+                type: Sequelize.STRING,
+            },
+        });
+
+        const warnings = moderation.define('warnings', {
+            userId: {
+                type: Sequelize.STRING,
+            },
+            reason: {
+                type: Sequelize.STRING,
+            },
+            issuer: {
+                type: Sequelize.STRING,
+            },
+            server: {
+                type: Sequelize.STRING,
+            },
+        });
 
         const users = devdb.define('users', {
             author: {
@@ -118,7 +152,12 @@ module.exports = {
         links.sync();
         invites.sync();
         logging.sync();
+        modlog.sync();
+        warnings.sync();
+        messages.sync();
         blacklist.sync();
+        const deletedMessages = await messages.truncate()
+        console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] ${deletedMessages} messages deleted!`);
     }
 }
 

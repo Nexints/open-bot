@@ -12,20 +12,23 @@ const startDate = Date.now(); // tracks current date lol
 // Catches uncaught exceptions and puts them towards the regular event handler.
 // This likely happens when there is a serious error with the bot in either its shutdown or startup procedures.
 // This is put close to first for priority reasons.
-process.on('uncaughtException', async (err, origin) => {
-	console.log("[" + DateFormatter.format(Date.now()) + `] [CRITICAL] A critical, unhandled error happened in the server software, and the server has to stop.`);
-	console.log("[" + DateFormatter.format(Date.now()) + `] [CRITICAL] Something went seriously wrong.`);
-	console.log("[" + DateFormatter.format(Date.now()) + `] [CRITICAL] If safe mode doesn't help you, report exactly what you did to the bot developer.`);
+const errorFunction = function (err, origin) {
 	if (verbose) {
 		console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Full stack trace:`);
-		console.log(err);
+		console.error(err);
 		console.log(origin);
+	} else {
+		console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Shortened error / origin: ${err}, ${origin}.`);
 	}
-	console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Logging the console output.');
-	await delay(1000);
-	console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Ending process with exit code 1.');
-	process.exit(1);
+}
+process.on('uncaughtException', async (err, origin) => {
+	console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] A critical, unhandled error happened in the server software.`);
+	errorFunction(err, origin);
 });
+process.on("unhandledRejection", async (err, origin) => {
+	console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] An unhandled rejection happened.`);
+	errorFunction(err, origin);
+})
 
 // Process arguments that change parts of how the bot works.
 // --log-disable: Disables any logging functionality of the bot. Useful if saving logs take up a lot of storage.
@@ -75,7 +78,7 @@ const path = require('node:path');
 const readline = require('node:readline');
 const { REST, Routes } = require('discord.js');
 const { spawn } = require('child_process');
-const { Client, Collection, Events, GatewayIntentBits, PermissionsBitField, Partials, MessageFlags, ActivityType } = require('discord.js');
+const { Client, Collection, Events, ActivityType } = require('discord.js');
 const { clientId, token, version, intents, partials, logFormat, versionID, botActivity, botStatus, botURL, botType } = require('./config.js');
 const fetch = require('node-fetch');
 
@@ -166,6 +169,25 @@ const getUpdateVersion = async () => {
 		return 0;
 	}
 };
+const updateCheck = () => {
+	if (versionID < latestVersion) {
+		console.log("[" + DateFormatter.format(Date.now()) + '] [WARN]', `You're running an outdated version of this bot! (You are ${latestVersion - versionID} commits behind)`);
+		console.log("[" + DateFormatter.format(Date.now()) + '] [WARN]', `Update now at https://github.com/Nexints/open-bot to make sure that your bot has the latest security fixes!`);
+		if ((latestVersion - versionID) >= 5) {
+			console.log("[" + DateFormatter.format(Date.now()) + '] [WARN]', `You are over 5 commits behind. Update to the latest version as soon as possible.`);
+		}
+	} else if (latestVersion == 0) {
+		if (!safeMode) {
+			console.log("[" + DateFormatter.format(Date.now()) + '] [WARN]', `I can't check for updates!`);
+			console.log("[" + DateFormatter.format(Date.now()) + '] [WARN]', `This may lead to unknown errors. Here be dragons!`);
+		}
+	} else if (versionID > latestVersion) {
+		console.log("[" + DateFormatter.format(Date.now()) + '] [WARN]', `You're running an experimental version of this bot! (You are ${versionID - latestVersion} commits ahead)`);
+		console.log("[" + DateFormatter.format(Date.now()) + '] [WARN]', `Here be dragons!`);
+	} else {
+		console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', `You're running the latest version of this bot!`);
+	}
+}
 
 // Instantiate error catchers and shutdown functions
 // Handles the shutdown process after ending the bot execution
@@ -182,33 +204,6 @@ const exitHandler = async function () {
 	})();
 }
 
-// Handles errors before the bot goes live.
-const errorHandler = async function (error) {
-	console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] A severe error happened in the server software, and the server has to stop.`);
-	console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] This is most likely due to bad configurations or an outdated server.`);
-	if (verbose) {
-		console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Full stack trace:`);
-		console.error(error);
-	}
-	await exitHandler();
-}
-
-// Handles errors when the bot goes live.
-// This simply makes sure the bot exits cleanly, and doesn't abruptly terminate.
-const liveErrorHandler = async function (error) {
-	console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] A severe error happened in the server software, and the server has to stop.`);
-	console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] This is most likely due to outdated or invalid plugins.`);
-	if (verbose) {
-		console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Full stack trace:`);
-		console.error(error);
-	}
-	console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Ending bot execution.');
-	console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Closing console access.');
-	rl.close();
-	console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Closing bot connections.');
-	client.destroy();
-	await exitHandler();
-}
 if (verbose) {
 	console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Scanning for javascript files to preload...');
 } else {
@@ -218,234 +213,210 @@ console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Be aware that I a
 
 // Main function!
 (async () => {
-	try {
-		// Loader code for the main server instance.
-		// This jank piece of code loads commands and plugins.
-		if (!safeMode) {
-			for (const folder of preloadFolders) {
-				const commandsPath = path.join(preloadPath, folder);
-				const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-				for (const file of commandFiles) {
-					const filePath = path.join(commandsPath, file);
-					const command = require(filePath);
-					if ('execute' in command) {
-						if (verbose) {
-							console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Pre-loading the file "${filePath}".`);
-						}
-						command.execute();
-					} else {
-						console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] The pre-loaded file at ${filePath} is missing a required "execute" property. Nothing will be done.`);
-					}
-					count += 1;
-				}
-			}
-		}
-		latestVersion = await getUpdateVersion();
-		if (verbose) {
-			console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Found ${count} files.`);
-			console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Making exports available.');
-		}
-
-		// Export some of the constants and functions that may be needed by other files.
-		// This acts as an endpoint for other plugins to use.
-		// Will be added onto more as time goes on. Endpoint APIs will most likely not be deleted unless a major revision is in order.
-		module.exports = {
-			helpMenu: helpMenu,
-			readline: rl,
-			spawn: spawn,
-			exitHandler,
-			latestVersion: latestVersion,
-			chatLog: chatLog,
-		}
-
-		if (verbose) {
-			console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Reloading all commands.');
-		}
-
-		// Scan for plugins. The command list here is used by the rest of the bot.
-		if (!safeMode) {
-			for (const folder of pluginFolders) {
-				const commandsPath = path.join(pluginPath, folder);
-				const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-				for (const file of commandFiles) {
-					const filePath = path.join(commandsPath, file);
-					commandList.push(filePath);
-					const command = require(filePath);
-					if ('data' in command && 'execute' in command) {
-						if (verbose) {
-							console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Pushing the command "${command.data.name}" in "${filePath}" to JSON.`);
-						}
-						commands.push(command.data.toJSON());
-					} else if (!('execute' in command || 'help' in command || 'command' in command || 'messageCreate' in command)) {
-						console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] The command at ${filePath} is not a valid plugin file.`);
-					}
-				}
-			}
-		}
-		if (verbose) {
-			console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Cached ${commands.length} commands.`);
-		}
-
-		// Reloads slash commands
-		const rest = new REST().setToken(token);
-		if (verbose) {
-			console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Started reloading ${commands.length} commands.`);
-		}
-
-		const data = await rest.put(
-			Routes.applicationCommands(clientId),
-			{ body: commands },
-		);
-
-		if (verbose) {
-			console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Successfully reloaded ${data.length} commands.`);
-		}
-
-		// Sets up the discord client and other collections.
-		global.client = new Client({
-			intents: intents,
-			partials: partials
-		});
-
-		if (verbose) {
-			console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Client created.');
-		}
-
-		client.cooldowns = new Collection();
-		client.commands = new Collection();
-
-		if (verbose) {
-			console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Scanning for files.');
-		}
-
-		count = 0;
-
-		// Re-scan (AGAIN) for plugins.
-		if (!safeMode) {
-			for (let i = 0; i < commandList.length; i++) {
-				count++;
-				const command = require(commandList[i]);
-				if ('data' in command && 'execute' in command) {
+	// Loader code for the main server instance.
+	// This jank piece of code loads commands and plugins.
+	if (!safeMode) {
+		for (const folder of preloadFolders) {
+			const commandsPath = path.join(preloadPath, folder);
+			const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+			for (const file of commandFiles) {
+				const filePath = path.join(commandsPath, file);
+				const command = require(filePath);
+				if ('execute' in command) {
 					if (verbose) {
-						console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Loading the command "${command.data.name}" in "${commandList[i]}".`);
-					}
-					client.commands.set(command.data.name, command);
-				} else if ('execute' in command) {
-					if (verbose) {
-						console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Loading the JS file "${commandList[i]}".`);
+						console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Pre-loading the file "${filePath}".`);
 					}
 					command.execute();
-				} else if ('help' in command) {
+				} else {
+					console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] The pre-loaded file at ${filePath} is missing a required "execute" property. Nothing will be done.`);
+				}
+				count += 1;
+			}
+		}
+	}
+	latestVersion = await getUpdateVersion();
+	if (verbose) {
+		console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Found ${count} files.`);
+		console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Making exports available.');
+	}
+
+	// Export some of the constants and functions that may be needed by other files.
+	// This acts as an endpoint for other plugins to use.
+	// Will be added onto more as time goes on. Endpoint APIs will most likely not be deleted unless a major revision is in order.
+	module.exports = {
+		helpMenu: helpMenu,
+		readline: rl,
+		spawn: spawn,
+		exitHandler,
+		latestVersion: latestVersion,
+		chatLog: chatLog,
+	}
+
+	if (verbose) {
+		console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Reloading all commands.');
+	}
+
+	// Scan for plugins. The command list here is used by the rest of the bot.
+	if (!safeMode) {
+		for (const folder of pluginFolders) {
+			const commandsPath = path.join(pluginPath, folder);
+			const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+			for (const file of commandFiles) {
+				const filePath = path.join(commandsPath, file);
+				commandList.push(filePath);
+				const command = require(filePath);
+				if ('data' in command && 'execute' in command) {
 					if (verbose) {
-						console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Adding the JS file "${commandList[i]}" to the console help menu.`);
+						console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Pushing the command "${command.data.name}" in "${filePath}" to JSON.`);
 					}
-					helpMenu.push(...command.help());
-				} else if (!('command' in command || 'messageCreate' in command)) {
-					console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] The file at ${commandList[i]} is not a valid plugin file.`);
+					commands.push(command.data.toJSON());
+				} else if (!('execute' in command || 'help' in command || 'command' in command || 'messageCreate' in command)) {
+					console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] The command at ${filePath} is not a valid plugin file.`);
 				}
 			}
+		}
+	}
+	if (verbose) {
+		console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Cached ${commands.length} commands.`);
+	}
+
+	// Reloads slash commands
+	const rest = new REST().setToken(token);
+	if (verbose) {
+		console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Started reloading ${commands.length} commands.`);
+	}
+
+	const data = await rest.put(
+		Routes.applicationCommands(clientId),
+		{ body: commands },
+	);
+
+	if (verbose) {
+		console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Successfully reloaded ${data.length} commands.`);
+	}
+
+	// Sets up the discord client and other collections.
+	global.client = new Client({
+		intents: intents,
+		partials: partials
+	});
+
+	if (verbose) {
+		console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Client created.');
+	}
+
+	client.cooldowns = new Collection();
+	client.commands = new Collection();
+
+	if (verbose) {
+		console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Scanning for files.');
+	}
+
+	count = 0;
+
+	// Re-scan (AGAIN) for plugins.
+	if (!safeMode) {
+		for (let i = 0; i < commandList.length; i++) {
+			count++;
+			const command = require(commandList[i]);
+			if ('data' in command && 'execute' in command) {
+				if (verbose) {
+					console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Loading the command "${command.data.name}" in "${commandList[i]}".`);
+				}
+				client.commands.set(command.data.name, command);
+			} else if ('execute' in command) {
+				if (verbose) {
+					console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Loading the JS file "${commandList[i]}".`);
+				}
+				command.execute();
+			} else if ('help' in command) {
+				if (verbose) {
+					console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Adding the JS file "${commandList[i]}" to the console help menu.`);
+				}
+				helpMenu.push(...command.help());
+			} else if (!('command' in command || 'messageCreate' in command)) {
+				console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] The file at ${commandList[i]} is not a valid plugin file.`);
+			}
+		}
+	}
+	if (verbose) {
+		console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] ${count} files loaded.`);
+	} else {
+		console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Finished loading ${count} files.`);
+	}
+
+	// Actions the bot should do when it's ready.
+	// Even with the built in (custom coded) plugins, it still says the instance is modified.
+	client.once(Events.ClientReady, async readyClient => {
+		if (verbose) {
+			console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Client is ready.');
+		}
+
+		// Logs the custom startup message.
+		console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', '\x1b[36m----------------------------------------------------\x1b[0m');
+		console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', "              Welcome to Nexint's bot!              ");
+		console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', "           You are running version: " + version);
+		console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', "       Stay up to date for the best features.       ");
+		if (safeMode) {
+			console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', "        Stop the bot by killing the process!        ");
+		} else {
+			console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', "             Modify the bot with /help!             ");
+		}
+		if (count > 0) {
+			console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', `             This instance is modified.             `);
+		} else if (safeMode) {
+			console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', `                 Safe mode enabled.                 `);
+		}
+		console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', '\x1b[36m----------------------------------------------------\x1b[0m');
+
+		// Version checking.
+		updateCheck();
+		console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Done! Logged in as ${readyClient.user.tag} in ${(Date.now() - startDate) / 1000} seconds.`);
+
+		// Startup options.
+		if (safeMode) {
+			console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', `Zero plugins or pre-loaded files are being used, verbose mode is enabled, and logging is disabled.`);
 		}
 		if (verbose) {
-			console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] ${count} files loaded.`);
+			console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', `Verbose mode is enabled. Additional information will be given.`);
 		} else {
-			console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Finished loading ${count} files.`);
+			console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', `Verbose mode is disabled. Verbose mode needs to be enabled to report bugs.`);
 		}
+		if (chatLog) {
+			client.user.setPresence({
+				activities: [{
+					name: "Bot spying Enabled! (Dev-mode)",
+					type: ActivityType.Custom,
+					url: botURL
+				}],
+				status: botStatus
+			});
+		} else {
+			client.user.setPresence({
+				activities: [{
+					name: botActivity,
+					type: botType,
+					url: botURL
+				}],
+				status: botStatus
+			});
+		}
+		if (verbose) {
+			console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Client status set. Change this in /config.js!');
+		}
+		asyncFunctions();
 
-		// Actions the bot should do when it's ready.
-		// Even with the built in (custom coded) plugins, it still says the instance is modified.
-		client.once(Events.ClientReady, async readyClient => {
-			if (verbose) {
-				console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Client is ready.');
-			}
-			try {
+	});
 
-				// Logs the custom startup message.
-				console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', '\x1b[36m----------------------------------------------------\x1b[0m');
-				console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', "              Welcome to Nexint's bot!              ");
-				console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', "           You are running version: " + version);
-				console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', "       Stay up to date for the best features.       ");
-				if (safeMode) {
-					console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', "        Stop the bot by killing the process!        ");
-				} else {
-					console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', "             Modify the bot with /help!             ");
-				}
-				if (count > 0) {
-					console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', `             This instance is modified.             `);
-				} else if (safeMode) {
-					console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', `                 Safe mode enabled.                 `);
-				}
-				console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', '\x1b[36m----------------------------------------------------\x1b[0m');
-
-				// Version checking.
-				if (versionID < latestVersion) {
-					console.log("[" + DateFormatter.format(Date.now()) + '] [WARN]', `You're running an outdated version of this bot! (You are ${latestVersion - versionID} commits behind)`);
-					console.log("[" + DateFormatter.format(Date.now()) + '] [WARN]', `Update now at https://github.com/Nexints/open-bot to make sure that your bot has the latest security fixes!`);
-					if ((latestVersion - versionID) >= 5) {
-						console.log("[" + DateFormatter.format(Date.now()) + '] [WARN]', `You are over 5 commits behind. Update to the latest version as soon as possible.`);
-					}
-				} else if (latestVersion == 0) {
-					if (!safeMode) {
-						console.log("[" + DateFormatter.format(Date.now()) + '] [WARN]', `I can't check for updates!`);
-						console.log("[" + DateFormatter.format(Date.now()) + '] [WARN]', `This may lead to unknown errors. Here be dragons!`);
-					}
-				} else if (versionID > latestVersion) {
-					console.log("[" + DateFormatter.format(Date.now()) + '] [WARN]', `You're running an experimental version of this bot! (You are ${versionID - latestVersion} commits ahead)`);
-					console.log("[" + DateFormatter.format(Date.now()) + '] [WARN]', `Here be dragons!`);
-				} else {
-					console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', `You're running the latest version of this bot!`);
-				}
-				console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Done! Logged in as ${readyClient.user.tag} in ${(Date.now() - startDate) / 1000} seconds.`);
-
-				// Startup options.
-				if (safeMode) {
-					console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', `Zero plugins or pre-loaded files are being used, verbose mode is enabled, and logging is disabled.`);
-				}
-				if (verbose) {
-					console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', `Verbose mode is enabled. Additional information will be given.`);
-				} else {
-					console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', `Verbose mode is disabled. Verbose mode needs to be enabled to report bugs.`);
-				}
-				if (chatLog) {
-					client.user.setPresence({
-						activities: [{
-							name: "Bot spying Enabled! (Dev-mode)",
-							type: ActivityType.Custom,
-							url: botURL
-						}],
-						status: botStatus
-					});
-				} else {
-					client.user.setPresence({
-						activities: [{
-							name: botActivity,
-							type: botType,
-							url: botURL
-						}],
-						status: botStatus
-					});
-				}
-				if (verbose) {
-					console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Client status set. Change this in /config.js!');
-				}
-				asyncFunctions().catch(async error => await liveErrorHandler(error));
-			} catch (error) {
-				await errorHandler(error);
-			}
-
-		});
-
-		// Login to the bot
-		client.login(token);
-	} catch (error) {
-		await errorHandler(error);
-	}
+	// Login to the bot
+	client.login(token);
 })();
 
 // Parses functions that happen asyncronously when the bot finishes starting. Handles update checks, etc.
 const asyncFunctions = async () => {
-	commandParser().catch(async error => await liveErrorHandler(error));
+	commandParser();
 	if (autoUpdate) {
-		updateCheck().catch(async error => await liveErrorHandler(error));
+		autoUpdateCheck();
 	} else {
 		console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Automatic update checking disabled.');
 	}
@@ -478,20 +449,10 @@ const commandParser = async () => {
 }
 
 // Update checks - Asyncronously checks updates.
-const updateCheck = async () => {
+const autoUpdateCheck = async () => {
 	console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Automatic update checking enabled');
 	while (consoleOpen) {
 		await delay(3600000); // artificial delay to ensure host's CPU doesn't die
-		latestVersion = await getUpdateVersion();
-		if (versionID < latestVersion) {
-			console.log("[" + DateFormatter.format(Date.now()) + '] [WARN]', `You're running an outdated version of this bot! (You are ${latestVersion - versionID} commits behind)`);
-			console.log("[" + DateFormatter.format(Date.now()) + '] [WARN]', `Update now at https://github.com/Nexints/open-bot to make sure that your bot has the latest security fixes!`);
-			if ((latestVersion - versionID) >= 5) {
-				console.log("[" + DateFormatter.format(Date.now()) + '] [WARN]', `You are over 5 commits behind. Update to the latest version as soon as possible.`);
-			}
-		} else if (versionID > latestVersion) {
-			console.log("[" + DateFormatter.format(Date.now()) + '] [WARN]', `You're running an experimental version of this bot! (You are ${versionID - latestVersion} commits ahead)`);
-			console.log("[" + DateFormatter.format(Date.now()) + '] [WARN]', `Here be dragons!`);
-		}
+		updateCheck();
 	}
 }

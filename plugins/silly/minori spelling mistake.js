@@ -20,8 +20,8 @@ const links = moderation.define('links', {
 module.exports = {
 	cooldown: 5,
 	data: new SlashCommandBuilder()
-		.setName('badapple')
-		.setDescription('Gives a youtube link to the Bad Apple song!'),
+		.setName('minori')
+		.setDescription('Minori spelling mistake.'),
 	async execute(interaction) {
 		// interaction.user is the object representing the User who ran the command
 		// interaction.member is the GuildMember object, which represents the user in the specific guild
@@ -42,7 +42,7 @@ module.exports = {
 			return;
 		}
 		await interaction.reply({
-			content: "A YouTube link to Bad Apple - https://www.youtube.com/watch?v=FtutLA63Cp8"
+			content: "https://tenor.com/view/minori-hanasato-minori-pjsk-more-more-jump-project-sekai-pjsk-gif-10970315925687936087\n-# This is a silly command, and will be removed on version 1.0."
 		});
 	},
 };

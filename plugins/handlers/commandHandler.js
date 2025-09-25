@@ -79,7 +79,7 @@ module.exports = {
                 readline.close();
                 await exitHandler();
                 return true;
-            case "/r":
+            case "/rs":
             case "/restart":
                 console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Restarting bot.');
                 console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Closing bot connections.');
