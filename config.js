@@ -72,8 +72,8 @@ module.exports = {
     logFormat: `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}-${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`, // Log format of the bot
 
     // Do not change these. Used for version checking and updating.
-    version: "0.1.4",
-    versionID: 7,
+    version: "0.2.1",
+    versionID: 9,
     botChannel: "dev",
     fileCount: 55 // file count, if more files are added / removed the server detects the instance is modified
 }
