@@ -2,14 +2,29 @@
 > This is a open-source Discord bot (that functions like a server). I am not liable for any plugins that are installed, excluding the ones already here. Do not contact me if you have problems and are running third party plugins.
 > 
 > This is PRE-PRE-ALPHA SOFTWARE! While I can try to fix as many bugs as possible, I am not liable for any problems this server software has. Use at your own risk.
+<<<<<<< Updated upstream
 >
 > PLEASE host your own instance of this bot! The main instance, while most backdoors are removed, may be unstable if many people try to use it.
+=======
+>>>>>>> Stashed changes
 
 # OpenBot
 
-This is an open-source Discord bot, akin to Minecraft server software. With a basic blacklist, link blocking, secret easter eggs, and third party plugin support, this bot has infinite expandability!
+This is an open-source Discord bot. Join our discord server here: https://discord.nexint.ca
 
-Join the discord here: https://nexint.org/discord
+## Features:
+- Custom Server Launcher (console commands, restart, etc)
+- Economy System
+- Job System (employment)
+- Moderation tools (automod)
+- Ban, Kick, Warn system
+- Custom logging (message logging, mod logging, bypass message logging)
+- Fun commands: Pat, hug (platonic), boop, and hello commands! (Additionally, secret silly commands are included)
+- Connects to Tenor's API (tenor commands will not work if tenor API does not exist)
+- Join/Leave Support
+- Data Privacy support (opt in / opt out)
+- Utilizes SQlite databases
+- 100% Configurable within Discord
 
 ## Pre-requisites:
 - NPM and node.js is required.
