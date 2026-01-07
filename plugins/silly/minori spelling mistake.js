@@ -42,7 +42,7 @@ module.exports = {
 			return;
 		}
 		await interaction.reply({
-			content: "https://tenor.com/view/minori-hanasato-minori-pjsk-more-more-jump-project-sekai-pjsk-gif-10970315925687936087\n-# This is a silly command, and will be removed on version 1.0."
+			content: "https://tenor.com/view/minori-hanasato-minori-pjsk-more-more-jump-project-sekai-pjsk-gif-10970315925687936087\n-# This is a silly command, and will be toggleable shortly."
 		});
 	},
 };

@@ -11,9 +11,19 @@ module.exports = {
 	async execute(interaction) {
 		// interaction.user is the object representing the User who ran the command
 		// interaction.member is the GuildMember object, which represents the user in the specific guild
+		let outputMsg;
+		if (latestVersion > versionID) {
+			outputMsg = `${latestVersion - versionID} commits behind.`;
+		} else if (latestVersion == 0) {
+			outputMsg = `The bot can't check for updates!`;
+		} else if (latestVersion < versionID) {
+			outputMsg = `${versionID - latestVersion} commits ahead.`;
+		} else {
+			outputMsg = `Running the latest version.`;
+		}
 		await interaction.reply({
-            content: `This bot is an open-source all in one moderation bot!\nBot version: ${version} (Version ID: ${versionID}) / Latest version ID: ${latestVersion}.`,
-            flags: MessageFlags.Ephemeral
-        });
+			content: `OpenBot is an open-source all in one moderation bot!\nBot version: ${version} (Version ID: ${versionID}) / Latest version ID: ${latestVersion}.\n${outputMsg}`,
+			flags: MessageFlags.Ephemeral
+		});
 	},
 };

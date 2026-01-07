@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, MessageFlags, EmbedBuilder } = require('discord.js');
 
 const Sequelize = require('sequelize');
+const { dmNotify } = require('../../functions/notify.js');
 
 const { devID, tenorKey, embedURL, embedIconURL, footerText, infoColor } = require('../../config.js');
 
@@ -49,6 +50,9 @@ const hugs = fundb.define('hugs', {
 	huggedId: {
 		type: Sequelize.STRING,
 	},
+	value: {
+		type: Sequelize.INTEGER,
+	},
 });
 
 module.exports = {
@@ -64,11 +68,7 @@ module.exports = {
 		.addBooleanOption(option =>
 			option
 				.setName('notify')
-				.setDescription('Whether or not to notify the person. Defaults to true.'))
-		.addBooleanOption(option =>
-			option
-				.setName('romantic')
-				.setDescription('Whether or not the hug was romantic or platonic. Defaults to platonic.')),
+				.setDescription('Whether or not to notify the person. Defaults to true.')),
 	async execute(interaction) {
 		// interaction.user is the object representing the User who ran the command
 		// interaction.member is the GuildMember object, which represents the user in the specific guild
@@ -85,39 +85,43 @@ module.exports = {
 				optedOut = true;
 			}
 		})
-		let tenorSearch;
-		let title;
-		let notifdesc;
-		if (interaction.options.getBoolean("romantic")) {
-			tenorSearch = await fetch("https://tenor.googleapis.com/v2/search?q=" + "romantic anime hug" + "&key=" + tenorKey + "&client_key=" + "DiscordBot" + "&limit=" + 1 + "&random=" + true);
-			title = `${interaction.user.displayName} hugs ${interaction.options.getUser("user").displayName} romantically!`
-		} else {
-			tenorSearch = await fetch("https://tenor.googleapis.com/v2/search?q=" + "platonic anime hug" + "&key=" + tenorKey + "&client_key=" + "DiscordBot" + "&limit=" + 1 + "&random=" + true);
-			title = `${interaction.user.displayName} hugs ${interaction.options.getUser("user").displayName} platonically!`
-		}
+		let tenorSearch = await fetch("https://tenor.googleapis.com/v2/search?q=" + "platonic anime hug" + "&key=" + tenorKey + "&client_key=" + "DiscordBot" + "&limit=" + 1 + "&random=" + true);
+		let title = `${interaction.user.displayName} hugs ${interaction.options.getUser("user").displayName} platonically!`;
 		const results = await tenorSearch.json();
 		const url = results.results[0].media_formats.gif.url;
 		let findHugs;
 		let description = `One of you has opted out of data collection.`;
 		if (!optedOut) {
-			findHugs = await hugs.findAll({
+			findHugs = await hugs.findOne({
 				where: {
 					userId: interaction.user.id,
 					huggedId: interaction.options.getUser("user").id
 				}
 			});
-			await hugs.create({
-				userId: interaction.user.id,
-				huggedId: interaction.options.getUser("user").id
-			});
-			description = `${interaction.user.displayName} has hugged ${interaction.options.getUser("user").displayName} ${findHugs.length + 1} time(s)!`;
+			if (findHugs === null) {
+				await hugs.create({
+					userId: interaction.user.id,
+					huggedId: interaction.options.getUser("user").id,
+					value: 1
+				});
+				findHugs = await hugs.findOne({
+					where: {
+						userId: interaction.user.id,
+						huggedId: interaction.options.getUser("user").id
+					}
+				});
+			} else {
+				findHugs.value += 1;
+				await findHugs.save();
+			}
+			description = `${interaction.user.displayName} has hugged ${interaction.options.getUser("user").displayName} ${findHugs.value} time(s)!`;
 		}
 		const hugEmbed = new EmbedBuilder()
 			.setColor(infoColor)
 			.setTitle(title)
 			.setURL(results.results[0].itemurl)
 			//.setAuthor({ name: 'Moderation Event', iconURL: embedIconURL, url: embedURL })
-			.setDescription(`${interaction.user.displayName} has hugged ${interaction.options.getUser("user").displayName} ${findHugs.length + 1} time(s)!`)
+			.setDescription(description)
 			.setThumbnail(embedURL)
 			// .addFields({ name: 'This message has been deleted: ', value: `\`${msg.cleanContent}\``, inline: true })
 			.setImage(url)
@@ -125,33 +129,15 @@ module.exports = {
 			.setFooter({ text: footerText, iconURL: embedIconURL });
 
 		const embedMessage = await interaction.reply({
-			embeds: [hugEmbed], fetchReply : true
+			embeds: [hugEmbed], withResponse: true
 		});
-
-		if (interaction.options.getBoolean("romantic")) {
-			notifdesc = `${interaction.user.displayName} hugged you romantically in the channel ${embedMessage.url}!`;
-		} else {
-			notifdesc = `${interaction.user.displayName} hugged you platonically in the channel ${embedMessage.url}!`;
-		}
+		let notifdesc = `${interaction.user.displayName} hugged you platonically in the channel ${embedMessage.resource.message.url}!`;
 		let notify = interaction.options.getBoolean("notify");
 		if (notify == null) {
 			notify = true;
 		}
 		if (notify) {
-			const dmNotif = new EmbedBuilder()
-				.setColor(infoColor)
-				.setTitle(`Notification!`)
-				.setURL(results.results[0].itemurl)
-				//.setAuthor({ name: 'Moderation Event', iconURL: embedIconURL, url: embedURL })
-				.setDescription(notifdesc + "\n-# Turn notifs off with /notify!")
-				.setThumbnail(embedURL)
-				// .addFields({ name: 'This message has been deleted: ', value: `\`${msg.cleanContent}\``, inline: true })
-				.setImage(url)
-				.setTimestamp()
-				.setFooter({ text: footerText, iconURL: embedIconURL });
-			await interaction.options.getUser("user").send({
-				embeds: [dmNotif]
-			});
+			await dmNotify(interaction.options.getUser("user"), notifdesc, url, results.results[0].itemurl, null, embedIconURL, footerText, infoColor)
 		}
 		if (interaction.options.getBoolean("romantic")) {
 			await interaction.channel.send({

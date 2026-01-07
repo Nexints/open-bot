@@ -32,29 +32,18 @@ module.exports = {
 				.setRequired(true)
 				.setDescription('The ban reason.')
 				.setMaxLength(100))
-		.setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+		.setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
 		.setContexts(InteractionContextType.Guild),
 	async execute(interaction) {
 		// interaction.user is the object representing the User who ran the command
 		// interaction.member is the GuildMember object, which represents the user in the specific guild
 		if (interaction.guild != null) {
 			if (interaction.member.permissions.has(PermissionsBitField.Flags.BanMembers)) {
-				let guildMember = interaction.options.getUser("user");
-				try {
-					guildMember = await interaction.guild.members.fetch(guildMember);
-				} catch (error) {
-					if (error.rawError.message == "Unknown Member") {
-						console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] The user \`${interaction.user.id}\` (${interaction.user.username}) tried banning ${interaction.options.getString('id')}, but the member does not exist!`);
-						await interaction.reply({ content: `The specified member does not exist or is already banned.`, flags: MessageFlags.Ephemeral });
-					} else if (error.rawError.message == "Invalid Form Body") {
-						console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] The user \`${interaction.user.id}\` (${interaction.user.username}) tried banning someone, but the command is malformed!`);
-						await interaction.reply({ content: `The ID you inputted is not an ID.`, flags: MessageFlags.Ephemeral });
-					} else {
-						console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] ${error}`)
-						await interaction.reply({ content: `Something seriously wrong happened. Error: ${error}`, flags: MessageFlags.Ephemeral })
-					}
-					return
-				}
+                if(interaction.options.getUser("user").id == interaction.user.id && !(interaction.member.permissions.has(PermissionsBitField.Flags.Administrator))){
+                    await interaction.reply({ content: "You don't have permission to ban yourself.", flags: MessageFlags.Ephemeral });
+                    return;
+                }
+				let guildMember = await interaction.guild.members.fetch(interaction.options.getUser("user").id);
 				if (guildMember.bannable) {
 					if (interaction.member.roles.highest.comparePositionTo(guildMember.roles.highest) <= 0) {
 						await interaction.reply({ content: `You don't have permission to ban ${guildMember.user.username}.`, flags: MessageFlags.Ephemeral });
@@ -117,7 +106,7 @@ module.exports = {
 						try {
 							await guildMember.send({ embeds: [banEmbed] });
 						} catch (error) {
-							await interaction.reply({ content: `Banned member "${guildMember.user.username}" for reason ${kickReason}, but could not DM the user.`, flags: MessageFlags.Ephemeral });
+							await interaction.reply({ content: `Banned member "${guildMember.user.username}" for reason ${banReason}, but could not DM the user.`, flags: MessageFlags.Ephemeral });
 							const banEmbed3 = new EmbedBuilder()
 								.setColor(infoColor)
 								.setTitle(`Info Event`)

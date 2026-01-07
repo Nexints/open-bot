@@ -1,5 +1,5 @@
 // Pre-requisits. Do not touch these.
-const { Collection, Events, GatewayIntentBits, PermissionsBitField, Partials, MessageFlags, ActivityType } = require('discord.js');
+const { GatewayIntentBits, Partials, ActivityType } = require('discord.js');
 let date = new Date();
 
 module.exports = {
@@ -8,6 +8,7 @@ module.exports = {
     token: "CHANGEME", // Bot Token
     clientId: "CHANGEME", // Bot Client ID
     devID: "CHANGEME", // Dev ID
+    devGuild: "CHANGEME", // dev guild ID
     tenorKey: "CHANGEME", // tenor api key, can leave as is but will result in a lack of tenor functionality
     intents: [ // All of the bot's permissions
         GatewayIntentBits.Guilds,
@@ -20,6 +21,12 @@ module.exports = {
         Partials.Channel,
         Partials.Message
     ],
+
+    // Developer mode stuff for the economy system. Can be hooked into by other currency plugins.
+    devMode: true,
+    devMultiplier: 100,
+    prodMultiplier: 1,
+    devMsg: "This bot is running in dev mode. Developer functions are enabled.",
 
     // Moderation stuff
     spamLog: 4, // how many messages before logging
@@ -40,7 +47,7 @@ module.exports = {
     botType: ActivityType.Listening,
     embedURL: "https://nexint.ca/", // credits me in the embed, leave this blank if you want no URL
     embedIconURL: "https://raw.githubusercontent.com/Nexints/Nexints.github.io/refs/heads/main/images/pfp.png", // more credit to me lol
-    footerText: "Nexint © 2025. Dev Build-v0.1.4.",
+    footerText: "Nexint © 2025. Dev Build-v0.2.1.",
     warnColor: 0xFFFF00,
     delMsgColor: 0x000000,
     muteColor: 0xFF8000,
@@ -67,5 +74,6 @@ module.exports = {
     // Do not change these. Used for version checking and updating.
     version: "0.1.4",
     versionID: 7,
-    botChannel: "dev"
+    botChannel: "dev",
+    fileCount: 55 // file count, if more files are added / removed the server detects the instance is modified
 }

@@ -80,7 +80,7 @@ module.exports = {
                 unique: true,
             },
         });
-        
+
         const modlog = moderation.define('modlog', {
             channelId: {
                 type: Sequelize.STRING,
@@ -144,18 +144,54 @@ module.exports = {
             }
         });
 
-        enabled.sync();
-        chatLog.sync();
-        users.sync();
-        updates.sync();
-        optOut.sync();
-        links.sync();
-        invites.sync();
-        logging.sync();
-        modlog.sync();
-        warnings.sync();
-        messages.sync();
-        blacklist.sync();
+        const join = moderation.define('join', {
+            channelId: {
+                type: Sequelize.STRING,
+                unique: true,
+            },
+            joinMsg: {
+                type: Sequelize.STRING,
+            },
+            serverId: {
+                type: Sequelize.STRING,
+            },
+        });
+
+        const leave = moderation.define('leave', {
+            channelId: {
+                type: Sequelize.STRING,
+                unique: true,
+            },
+            joinMsg: {
+                type: Sequelize.STRING,
+            },
+            serverId: {
+                type: Sequelize.STRING,
+            },
+        });
+        
+        const bypassLogs = moderation.define('bypasslogs', {
+            channelId: {
+                type: Sequelize.STRING,
+                unique: true,
+            },
+        });
+
+        await enabled.sync();
+        await chatLog.sync();
+        await users.sync();
+        await updates.sync();
+        await optOut.sync();
+        await links.sync();
+        await invites.sync();
+        await logging.sync();
+        await modlog.sync();
+        await warnings.sync();
+        await messages.sync();
+        await blacklist.sync();
+        await join.sync();
+        await leave.sync();
+        await bypassLogs.sync();
         const deletedMessages = await messages.truncate()
         console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] ${deletedMessages} messages deleted!`);
     }

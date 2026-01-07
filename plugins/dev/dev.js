@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, MessageFlags } = require('discord.js');
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const { devID } = require('../../config.js');
 
@@ -168,19 +169,36 @@ module.exports = {
                     break;
                 case "update":
                     const updateMessage = interaction.options.getString('message');
+                    await interaction.deferReply();
+                    let msg = "";
+                    for (let i = 0; i < updateMessage.length; i++) {
+                        let tmpMsg = updateMessage[i];
+                        if (updateMessage[i] == "\\") {
+                            i += 1;
+                            tmpMsg += updateMessage[i];
+                            switch (tmpMsg.toLowerCase()) {
+                                case "\\n":
+                                    tmpMsg = "\n";
+                                    break;
+                            }
+                        }
+                        msg += tmpMsg;
+                    }
                     const updateChannels = await updates.findAll({ attributes: ['channelId', 'channel', 'type'] });
                     let channels = 0;
                     updateChannels.forEach(async updates => {
                         let channel = await client.channels.fetch(updates.channelId);
                         if (updates.type == "dms") {
                             if (updates.channel == interaction.options.getString('channel')) {
-                                channel.send(updateMessage);
+                                channel.send(msg);
                                 channels += 1;
+                                delay(100);
                             }
                         } else {
                             if (channel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true) && updates.channel == interaction.options.getString('channel')) {
-                                channel.send(updateMessage);
+                                channel.send(msg);
                                 channels += 1;
+                                delay(100);
                             }
                         }
                     })
@@ -189,8 +207,8 @@ module.exports = {
                         content: interaction.user.username + " : " + updateMessage,
                         author: interaction.user.id
                     });
-                    await interaction.reply({
-                        content: "Updated all servers (" + channels + ") under channel " + interaction.options.getString('channel') + " with the message:\n\n" + updateMessage,
+                    await interaction.editReply({
+                        content: "Updated all servers (" + channels + ") under channel " + interaction.options.getString('channel') + " with the message:\n\n" + msg,
                         flags: MessageFlags.Ephemeral
                     });
                     break;

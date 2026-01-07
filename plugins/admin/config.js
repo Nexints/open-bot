@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionsBitField, MessageFlags } = require('discord.js');
+const { InteractionContextType, SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField, MessageFlags } = require('discord.js');
 
 const Sequelize = require('sequelize');
 
@@ -67,6 +67,32 @@ const blacklist = moderation.define('blacklist', {
     },
     strict: {
         type: Sequelize.BOOLEAN,
+    },
+});
+
+const join = moderation.define('join', {
+    channelId: {
+        type: Sequelize.STRING,
+        unique: true,
+    },
+    joinMsg: {
+        type: Sequelize.STRING,
+    },
+    serverId: {
+        type: Sequelize.STRING,
+    },
+});
+
+const leave = moderation.define('leave', {
+    channelId: {
+        type: Sequelize.STRING,
+        unique: true,
+    },
+    joinMsg: {
+        type: Sequelize.STRING,
+    },
+    serverId: {
+        type: Sequelize.STRING,
     },
 });
 
@@ -177,12 +203,50 @@ module.exports = {
                         .addChoices(
                             { name: 'Enable', value: 'enable' },
                             { name: 'Disable', value: 'disable' },
-                        ))),
+                        )))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('join')
+                .setDescription('Enable or disable join logging functionality in this channel.')
+                .addStringOption(option =>
+                    option
+                        .setName('value')
+                        .setRequired(true)
+                        .setDescription('Enable or disable join logging?')
+                        .addChoices(
+                            { name: 'Enable', value: 'enable' },
+                            { name: 'Disable', value: 'disable' },
+                        ))
+                .addStringOption(option =>
+                    option
+                        .setName('message')
+                        .setRequired(true)
+                        .setDescription('Join message? ${user} is the user, ${server} is name of server.')))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('leave')
+                .setDescription('Enable or disable leave logging functionality in this channel.')
+                .addStringOption(option =>
+                    option
+                        .setName('value')
+                        .setRequired(true)
+                        .setDescription('Enable or disable leave logging?')
+                        .addChoices(
+                            { name: 'Enable', value: 'enable' },
+                            { name: 'Disable', value: 'disable' },
+                        ))
+                .addStringOption(option =>
+                    option
+                        .setName('message')
+                        .setRequired(true)
+                        .setDescription('Leave message? ${user} is the user, ${server} is name of server.')))
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+        .setContexts(InteractionContextType.Guild),
     async execute(interaction) {
         // interaction.user is the object representing the User who ran the command
         // interaction.member is the GuildMember object, which represents the user in the specific guild
         if (interaction.guild != null) {
-            if (interaction.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
+            if (interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
                 switch (interaction.options.getSubcommand()) {
                     case "updates":
                         switch (interaction.options.getString('value')) {
@@ -253,7 +317,7 @@ module.exports = {
                                 });
 
                                 if (!rowCount) {
-                                    await interaction.reply({ content: "Linksare already enabled here.", flags: MessageFlags.Ephemeral });
+                                    await interaction.reply({ content: "Links are already enabled here.", flags: MessageFlags.Ephemeral });
                                     console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried enabling links in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but links are already enabled here.`);
                                     return;
                                 }
@@ -395,6 +459,79 @@ module.exports = {
                                 break;
                         }
                         break;
+                    case "join":
+                        switch (interaction.options.getString('value')) {
+                            case "enable":
+                                try {
+                                    await join.create({
+                                        channelId: interaction.channelId,
+                                        joinMsg: interaction.options.getString('message'),
+                                        serverId: interaction.guild.id
+                                    });
+                                    await interaction.reply("Join messages are now enabled in this channel.\n\nJoin message: " + interaction.options.getString('message'));
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) enabled mod logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
+                                } catch (error) {
+                                    if (error.name === 'SequelizeUniqueConstraintError') {
+                                        await interaction.reply({ content: "Join messages are already enabled here.", flags: MessageFlags.Ephemeral });
+                                        console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried enabling mod logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but logging is already enabled here.`);
+                                        return;
+                                    }
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] The user \`${interaction.user.id}\` (${interaction.user.username}) tried enabling mod logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but something seriously wrong happened. Error: \'${error}\'`);
+                                }
+                                break;
+                            case "disable":
+                                const rowCount = await join.destroy({
+                                    where: {
+                                        channelId: interaction.channelId,
+                                    }
+                                });
+                                if (!rowCount) {
+                                    await interaction.reply({ content: "Join messages are already disabled here.", flags: MessageFlags.Ephemeral });
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disabling mod logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but logging is already disabled here.`);
+                                    return;
+                                }
+                                await interaction.reply({ content: "Join messages are now disabled." });
+                                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) disabled mod logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
+                                break;
+                        }
+                        break;
+
+                    case "leave":
+                        switch (interaction.options.getString('value')) {
+                            case "enable":
+                                try {
+                                    await leave.create({
+                                        channelId: interaction.channelId,
+                                        joinMsg: interaction.options.getString('message'),
+                                        serverId: interaction.guild.id
+                                    });
+                                    await interaction.reply("Leave messages are now enabled in this channel.\n\nLeave message: " + interaction.options.getString('message'));
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) enabled mod logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
+                                } catch (error) {
+                                    if (error.name === 'SequelizeUniqueConstraintError') {
+                                        await interaction.reply({ content: "Leave messages are already enabled here.", flags: MessageFlags.Ephemeral });
+                                        console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried enabling mod logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but logging is already enabled here.`);
+                                        return;
+                                    }
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] The user \`${interaction.user.id}\` (${interaction.user.username}) tried enabling mod logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but something seriously wrong happened. Error: \'${error}\'`);
+                                }
+                                break;
+                            case "disable":
+                                const rowCount = await leave.destroy({
+                                    where: {
+                                        channelId: interaction.channelId,
+                                    }
+                                });
+                                if (!rowCount) {
+                                    await interaction.reply({ content: "Leave messages are already disabled here.", flags: MessageFlags.Ephemeral });
+                                    console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) tried disabling mod logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`), but logging is already disabled here.`);
+                                    return;
+                                }
+                                await interaction.reply({ content: "Leave messages are now disabled." });
+                                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] The user \`${interaction.user.id}\` (${interaction.user.username}) disabled mod logging in the Discord channel \`${interaction.channelId}\` (\`${interaction.channel.name}\`).`);
+                                break;
+                        }
+                        break;
                     case "blacklist":
                         switch (interaction.options.getString('value')) {
                             case "enable":
@@ -483,7 +620,7 @@ module.exports = {
                 }
             } else {
 
-                await interaction.reply({ content: "You don't have permission to do this.\n\nAdmin commands are only accessable to admins.", flags: MessageFlags.Ephemeral });
+                await interaction.reply({ content: "You don't have permission to do this.\n\nThis command is only accessable to guild managers.", flags: MessageFlags.Ephemeral });
             }
 
 

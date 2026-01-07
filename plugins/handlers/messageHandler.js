@@ -92,17 +92,24 @@ const blacklist = moderation.define('blacklist', {
     },
 });
 
+const bypassLogs = moderation.define('bypasslogs', {
+    channelId: {
+        type: Sequelize.STRING,
+        unique: true,
+    },
+});
+
 module.exports = {
     async execute() {
         client.on("messageCreate", async msg => {
             const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-            // Logs message author for 5 seconds. Checks if >5 messages in 5 seconds.
-            if (msg.author.id != client.user.id) {
+            // Logs message author for 5 seconds. Checks if >5 messages in 5 seconds, and checks for a valid timestamp.
+            if (msg.author.id != client.user.id && msg.author.bot == false && (Math.floor((msg.createdTimestamp - Date.now()) / 1000) - 3) <= spamDelay) {
                 await messages.create({
                     userId: msg.author.id,
                     content: msg.content,
-                    messageId: msg.id
+                    messageId: msg.id,
                 });
             }
 
@@ -110,7 +117,7 @@ module.exports = {
             // May be deprecated at a future date.
             const optedOutIDs = await optOut.findAll();
             let optedOut = false;
-            optedOutIDs.forEach(async ids => {
+            await optedOutIDs.forEach(async ids => {
                 if (ids.author == msg.author.id) {
                     optedOut = true;
                 }
@@ -130,12 +137,19 @@ module.exports = {
             // Server-side message logging functionality!
             // Will not be deprecated.
             const loggedIDs = await logging.findAll();
+            const bypassLoggedMessages = await bypassLogs.findAll();
             const modChannelIDs = await modlog.findAll();
             const messageCount = await messages.findAll({
                 where: {
                     userId: msg.author.id
                 }
             });
+            let bypassed = false;
+            bypassLoggedMessages.forEach(bypass => {
+                if (bypass.channelId == msg.channel.id) {
+                    bypassed = true;
+                }
+            })
             let logged = false;
             let logTemp = false;
             let loggedChannelID;
@@ -149,6 +163,7 @@ module.exports = {
                         loggedChannelID = loggedChannel.channelId;
                     }
                 } catch {
+                    console.log(loggedChannel.channelId);
                     await logging.destroy({
                         where: {
                             channelId: loggedChannel.channelId,
@@ -176,7 +191,9 @@ module.exports = {
                         if (messageCount.length > spamWarn) {
                             redacted = `${msg.author.username} (Auto Warned)`;
                         }
-                        await logChannel.send(`(${msg.url}) \`${redacted}: ${msg.cleanContent}\` (${msg.id})${replied}`);
+                        if (msg.author.bot == false && !bypassed) {
+                            await logChannel.send(`(${msg.url}) \`${redacted}: ${msg.cleanContent}\` (${msg.id})${replied}`);
+                        }
                     } else {
                         await logging.destroy({
                             where: {
@@ -224,6 +241,11 @@ module.exports = {
             const invite = await invites.findAll({});
             const blacklists = await blacklist.findAll({});
 
+            // Bypass automod logging on bypassed channels. Data privacy.
+            if (bypassed) {
+                modChannelBool = false;
+            }
+
             // See if moderation checks are required.
             let linkCheck = false;
             let inviteCheck = false;
@@ -248,7 +270,7 @@ module.exports = {
             // Skips moderation checks when messageCount > spamDelete
             let botMessage;
             if (messageCount.length < spamDelete + 1) {
-                if (msg.author.id != client.user.id && msg.guild != null) {
+                if (msg.author.id != client.user.id && msg.guild != null && msg.author.bot == false) {
                     if (autoModAPI == false) {
                         if ((linkCheck || inviteCheck)) {
 
@@ -257,7 +279,7 @@ module.exports = {
                             const blacklist = ['https://', 'http://']; // block all links
                             const blacklistInvites = ['discord.gg/', 'discord.com']; // block invite links
                             const blacklistCustom = ['/invite'] // block specific directories in the covered link types (invite)
-                            const whitelist = ['tenor.com/', 'cdn.discordapp.com/', 'cdn.discord.com/', 'cdn.discord.gg/', 'media.discordapp.net']; // whitelist specific domains (Whitelisted my domain lol)
+                            const whitelist = ['tenor.com/', 'cdn.discordapp.com/', 'cdn.discord.com/', 'cdn.discord.gg/', 'media.discordapp.net']; // whitelist specific domains
                             let blacklisted = false;
                             let linkOrMessage = "invite";
                             let linkOrMessageCaps = "Invite";
@@ -337,7 +359,7 @@ module.exports = {
                                 } else {
                                     const whitespace = [' ', '\n', '\t'];
                                     for (let i = 0; i < whitespace.length; i++) {
-                                        if (msg.content.toLowerCase().includes(whitespace[i] + blacklist.word.toLowerCase() + whitespace[i]) || msg.content.toLowerCase().includes(blacklist.word.toLowerCase() + whitespace[i]) || msg.content.toLowerCase() == (blacklist.word.toLowerCase())) {
+                                        if (msg.content.normalize("NFKC").toLowerCase().includes(whitespace[i] + blacklist.word.toLowerCase() + whitespace[i]) || msg.content.normalize("NFKC").toLowerCase().includes(blacklist.word.toLowerCase() + whitespace[i]) || msg.content.normalize("NFKC").toLowerCase() == (blacklist.word.toLowerCase()) || msg.content.normalize("NFKC").toLowerCase().endsWith(blacklist.word.toLowerCase())) {
                                             blacklistCheck = true;
                                         }
                                     }
@@ -378,17 +400,17 @@ module.exports = {
                     } else {
                         // Currently waiting for the actual auto-mod.
                         if (logged && msg.author.id != clientId && logChannel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
-                            await logChannel.send(`Note that the auto-mod API is enabled, but does not currently work. Please disable it in the config!`);
+                            await logChannel.send(`Note that the auto-mod API is enabled, but does not currently work. Please disable it in the config!\n-# Unexpected behavior may arise.`);
                         }
 
                     }
-                    await delay(5000);
+                    await delay(spamDelay * 1000);
                     if (botMessage != undefined) {
                         await botMessage.delete();
                     }
                 }
             }
-            if (msg.author.id != client.user.id) {
+            if (msg.author.id != client.user.id && msg.author.bot == false) {
                 (async () => {
                     if (messageCount.length > spamDelete) {
                         if (!(messageCount.length > spamWarn) && modChannelBool) {

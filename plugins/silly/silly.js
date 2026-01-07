@@ -26,7 +26,7 @@ module.exports = {
 		// interaction.user is the object representing the User who ran the command
 		// interaction.member is the GuildMember object, which represents the user in the specific guild
 		await interaction.reply({
-			content: "hehe silly nexint bot go brrr\n-# This is a silly command, and will be removed on version 1.0."
+			content: "hehe silly nexint bot go brrr\n-# This is a silly command, and will be toggleable shortly."
 		});
 	},
 };

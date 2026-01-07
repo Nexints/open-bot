@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, MessageFlags, EmbedBuilder } = require('discord.js');
 
 const Sequelize = require('sequelize');
+const { dmNotify } = require('../../functions/notify.js');
 
 const { devID, tenorKey, embedURL, embedIconURL, footerText, infoColor } = require('../../config.js');
 
@@ -49,6 +50,9 @@ const hello = fundb.define('hello', {
 	helloId: {
 		type: Sequelize.STRING,
 	},
+	value: {
+		type: Sequelize.INTEGER,
+	},
 });
 
 module.exports = {
@@ -81,23 +85,35 @@ module.exports = {
 				optedOut = true;
 			}
 		})
-		const tenorSearch = await fetch("https://tenor.googleapis.com/v2/search?q=" + "anime greeting hello" + "&key=" + tenorKey + "&client_key=" + "DiscordBot" + "&limit=" + 1 + "&random=" + true);
+		const tenorSearch = await fetch("https://tenor.googleapis.com/v2/search?q=" + "anime greeting hello friendship" + "&key=" + tenorKey + "&client_key=" + "DiscordBot" + "&limit=" + 1 + "&random=" + true);
 		const results = await tenorSearch.json();
 		const url = results.results[0].media_formats.gif.url;
 		let findhello;
 		let description = `One of you has opted out of data collection.`;
 		if (!optedOut) {
-			findhello = await hello.findAll({
+			findhello = await hello.findOne({
 				where: {
 					userId: interaction.user.id,
 					helloId: interaction.options.getUser("user").id
 				}
 			});
-			await hello.create({
-				userId: interaction.user.id,
-				helloId: interaction.options.getUser("user").id
-			});
-			description = `${interaction.user.displayName} has said hello to ${interaction.options.getUser("user").displayName} ${findhello.length + 1} time(s)!`;
+			if (findhello === null) {
+				await hello.create({
+					userId: interaction.user.id,
+					helloId: interaction.options.getUser("user").id,
+					value: 1
+				});
+				findhello = await hello.findOne({
+					where: {
+						userId: interaction.user.id,
+						helloId: interaction.options.getUser("user").id
+					}
+				});
+			} else {
+				findhello.value += 1;
+				await findhello.save();
+			}
+			description = `${interaction.user.displayName} has said hello to ${interaction.options.getUser("user").displayName} ${findhello.value} time(s)!`;
 		}
 		const helloEmbed = new EmbedBuilder()
 			.setColor(infoColor)
@@ -111,27 +127,14 @@ module.exports = {
 			.setTimestamp()
 			.setFooter({ text: footerText, iconURL: embedIconURL });
 		const embedMessage = await interaction.reply({
-			embeds: [helloEmbed], fetchReply : true
+			embeds: [helloEmbed], withResponse: true
 		});
 		let notify = interaction.options.getBoolean("notify");
 		if (notify == null) {
 			notify = true;
 		}
 		if (notify) {
-			const dmNotif = new EmbedBuilder()
-				.setColor(infoColor)
-				.setTitle(`Notification!`)
-				.setURL(results.results[0].itemurl)
-				//.setAuthor({ name: 'Moderation Event', iconURL: embedIconURL, url: embedURL })
-				.setDescription(`${interaction.user.displayName} said hello to you in the channel ${embedMessage.url}!` + "\n-# Turn notifs off with /notify!")
-				.setThumbnail(embedURL)
-				// .addFields({ name: 'This message has been deleted: ', value: `\`${msg.cleanContent}\``, inline: true })
-				.setImage(url)
-				.setTimestamp()
-				.setFooter({ text: footerText, iconURL: embedIconURL });
-			await interaction.options.getUser("user").send({
-				embeds: [dmNotif]
-			});
+			await dmNotify(interaction.options.getUser("user"), `${interaction.user.displayName} said hello to you in the channel ${embedMessage.resource.message.url}!`, url, results.results[0].itemurl, null, embedIconURL, footerText, infoColor);
 		}
 	},
 };

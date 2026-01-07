@@ -32,29 +32,18 @@ module.exports = {
 				.setRequired(true)
 				.setDescription('The kick reason.')
 				.setMaxLength(100))
-		.setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+		.setDefaultMemberPermissions(PermissionFlagsBits.KickMembers)
 		.setContexts(InteractionContextType.Guild),
 	async execute(interaction) {
 		// interaction.user is the object representing the User who ran the command
 		// interaction.member is the GuildMember object, which represents the user in the specific guild
 		if (interaction.guild != null) {
 			if (interaction.member.permissions.has(PermissionsBitField.Flags.KickMembers)) {
-				let guildMember = interaction.options.getUser("user");
-				try {
-					guildMember = await interaction.guild.members.fetch(guildMember);
-				} catch (error) {
-					if (error.rawError.message == "Unknown Member") {
-						console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] The user \`${interaction.user.id}\` (${interaction.user.username}) tried kicking ${interaction.options.getString('id')}, but the member does not exist!`);
-						await interaction.reply({ content: `The specified member does not exist or is already banned.`, flags: MessageFlags.Ephemeral });
-					} else if (error.rawError.message == "Invalid Form Body") {
-						console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] The user \`${interaction.user.id}\` (${interaction.user.username}) tried kicking someone, but the command is malformed!`);
-						await interaction.reply({ content: `The ID you inputted is not an ID.`, flags: MessageFlags.Ephemeral });
-					} else {
-						console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] ${error}`)
-						await interaction.reply({ content: `Something seriously wrong happened. Error: ${error}`, flags: MessageFlags.Ephemeral })
-					}
-					return
-				}
+                if(interaction.options.getUser("user").id == interaction.user.id && !(interaction.member.permissions.has(PermissionsBitField.Flags.Administrator))){
+                    await interaction.reply({ content: "You don't have permission to kick yourself.", flags: MessageFlags.Ephemeral });
+                    return;
+                }
+				let guildMember = await interaction.guild.members.fetch(interaction.options.getUser("user").id);
 				if (guildMember.kickable) {
 					if (interaction.member.roles.highest.comparePositionTo(guildMember.roles.highest) <= 0) {
 						await interaction.reply({ content: `You don't have permission to kick ${guildMember.user.username}.`, flags: MessageFlags.Ephemeral });
@@ -106,7 +95,7 @@ module.exports = {
 								.setTitle(`Kicked`)
 								.setURL(embedURL)
 								//.setAuthor({ name: 'Moderation Event', iconURL: embedIconURL, url: embedURL })
-								.setDescription(`\`${guildMember.user}\` (\`${guildMember.user.username}\`) has been warned by \`${interaction.user.username}\` (\`${interaction.user.id}\`) for: \`${kickReason}\`.`)
+								.setDescription(`\`${guildMember.user}\` (\`${guildMember.user.username}\`) has been kicked by \`${interaction.user.username}\` (\`${interaction.user.id}\`) for: \`${kickReason}\`.`)
 								.setThumbnail(embedURL)
 								// .addFields({ name: 'This message has been deleted: ', value: `\`${msg.cleanContent}\``, inline: true })
 								// .setImage('https://i.imgur.com/AfFp7pu.png')

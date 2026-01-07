@@ -20,6 +20,9 @@ module.exports = {
             huggedId: {
                 type: Sequelize.STRING,
             },
+            value: {
+                type: Sequelize.INTEGER,
+            },
         });
         
         const pat = fundb.define('pat', {
@@ -29,14 +32,8 @@ module.exports = {
             pattedId: {
                 type: Sequelize.STRING,
             },
-        });
-
-        const kiss = fundb.define('kiss', {
-            userId: {
-                type: Sequelize.STRING,
-            },
-            kissedId: {
-                type: Sequelize.STRING,
+            value: {
+                type: Sequelize.INTEGER,
             },
         });
 
@@ -47,12 +44,35 @@ module.exports = {
             helloId: {
                 type: Sequelize.STRING,
             },
+            value: {
+                type: Sequelize.INTEGER,
+            },
+        });
+
+        const boop = fundb.define('boop', {
+            userId: {
+                type: Sequelize.STRING,
+            },
+            boopId: {
+                type: Sequelize.STRING,
+            },
+            value: {
+                type: Sequelize.INTEGER,
+            },
+        });
+
+        const notify = fundb.define('notify', {
+            userId: {
+                type: Sequelize.STRING,
+                unique: true
+            },
         });
 
         hugs.sync();
         pat.sync();
-        kiss.sync();
         hello.sync();
+        boop.sync();
+        notify.sync();
         console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Fun DBs loaded!`);
     }
 }

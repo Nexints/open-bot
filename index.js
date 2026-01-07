@@ -22,10 +22,16 @@ const errorFunction = function (err, origin) {
 	}
 }
 process.on('uncaughtException', async (err, origin) => {
+	if (err.code == "EPIPE") {
+		process.exit(0);
+	}
 	console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] A critical, unhandled error happened in the server software.`);
 	errorFunction(err, origin);
 });
 process.on("unhandledRejection", async (err, origin) => {
+	if (err.code == "EPIPE") {
+		process.exit(0);
+	}
 	console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] An unhandled rejection happened.`);
 	errorFunction(err, origin);
 })
@@ -33,7 +39,7 @@ process.on("unhandledRejection", async (err, origin) => {
 // Process arguments that change parts of how the bot works.
 // --log-disable: Disables any logging functionality of the bot. Useful if saving logs take up a lot of storage.
 // --safe: Enables safe mode, removes all plugins. Use this before reporting a bug with the server itself.
-// --chat-log: Saves a log of every single message ever sent, or edited, in every server the bot is in. Overrides the bot status to indicate spying is enabledd.
+// --chat-log: Saves a log of every single message ever sent, or edited, in every server the bot is in. Overrides the bot status to indicate spying is enabled. Not sure if this works.
 // --no-update: Disables automatic updating.
 // --verbose: Gives more information in the log. This information is required when bug-reporting.
 // More are to be added in the future.
@@ -79,7 +85,7 @@ const readline = require('node:readline');
 const { REST, Routes } = require('discord.js');
 const { spawn } = require('child_process');
 const { Client, Collection, Events, ActivityType } = require('discord.js');
-const { clientId, token, version, intents, partials, logFormat, versionID, botActivity, botStatus, botURL, botType } = require('./config.js');
+const { clientId, token, version, intents, partials, logFormat, versionID, botActivity, botStatus, botURL, botType, fileCount } = require('./config.js');
 const fetch = require('node-fetch');
 
 // Create files if they don't exist.
@@ -110,7 +116,7 @@ const prompt = (query) => new Promise((resolve) => rl.question(query, resolve));
 const originalWrite = process.stdout.write;
 
 // Load non-constants.
-let consoleOpen = true;
+consoleOpen = true; // global consoleOpen variable, checked constantly
 let count = 0;
 let latestVersion = 0;
 
@@ -221,13 +227,13 @@ console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Be aware that I a
 			const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 			for (const file of commandFiles) {
 				const filePath = path.join(commandsPath, file);
-				const command = require(filePath);
+				const command = await require(filePath);
 				if ('execute' in command) {
 					if (verbose) {
 						console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Pre-loading the file "${filePath}".`);
 					}
-					command.execute();
-				} else {
+					await command.execute();
+				} else if (!(`config` in command)) {
 					console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] The pre-loaded file at ${filePath} is missing a required "execute" property. Nothing will be done.`);
 				}
 				count += 1;
@@ -270,7 +276,7 @@ console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Be aware that I a
 						console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Pushing the command "${command.data.name}" in "${filePath}" to JSON.`);
 					}
 					commands.push(command.data.toJSON());
-				} else if (!('execute' in command || 'help' in command || 'command' in command || 'messageCreate' in command)) {
+				} else if (!('execute' in command || 'help' in command || 'command' in command || 'messageCreate' in command || 'post' in command || 'config' in command)) {
 					console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] The command at ${filePath} is not a valid plugin file.`);
 				}
 			}
@@ -334,7 +340,7 @@ console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Be aware that I a
 					console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Adding the JS file "${commandList[i]}" to the console help menu.`);
 				}
 				helpMenu.push(...command.help());
-			} else if (!('command' in command || 'messageCreate' in command)) {
+			} else if (!('command' in command || 'messageCreate' in command || 'post' in command || 'config' in command)) {
 				console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] The file at ${commandList[i]} is not a valid plugin file.`);
 			}
 		}
@@ -358,11 +364,11 @@ console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Be aware that I a
 		console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', "           You are running version: " + version);
 		console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', "       Stay up to date for the best features.       ");
 		if (safeMode) {
-			console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', "        Stop the bot by killing the process!        ");
+			console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', "        Stop the bot by killing the process.        ");
 		} else {
 			console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', "             Modify the bot with /help!             ");
 		}
-		if (count > 0) {
+		if (count > 0 && count != fileCount) {
 			console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', `             This instance is modified.             `);
 		} else if (safeMode) {
 			console.log("[" + DateFormatter.format(Date.now()) + '] [INFO]', `                 Safe mode enabled.                 `);
@@ -414,6 +420,19 @@ console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Be aware that I a
 
 // Parses functions that happen asyncronously when the bot finishes starting. Handles update checks, etc.
 const asyncFunctions = async () => {
+
+	if (!safeMode) {
+		for (let i = 0; i < commandList.length; i++) {
+			count++;
+			const command = require(commandList[i]);
+			if ('post' in command) {
+				if (verbose) {
+					console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] Loading the post-loaded JS file "${commandList[i]}".`);
+				}
+				command.post(verbose);
+			}
+		}
+	}
 	commandParser();
 	if (autoUpdate) {
 		autoUpdateCheck();
@@ -453,6 +472,7 @@ const autoUpdateCheck = async () => {
 	console.log("[" + DateFormatter.format(Date.now()) + '] [INFO] Automatic update checking enabled');
 	while (consoleOpen) {
 		await delay(3600000); // artificial delay to ensure host's CPU doesn't die
+		latestVersion = await getUpdateVersion();
 		updateCheck();
 	}
 }

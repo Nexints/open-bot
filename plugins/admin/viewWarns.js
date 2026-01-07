@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionsBitField, MessageFlags, EmbedBuilder } = require('discord.js');
+const { InteractionContextType, SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField, MessageFlags, EmbedBuilder } = require('discord.js');
 const Sequelize = require('sequelize');
 const { embedURL, embedIconURL, footerText, devID } = require('../../config.js');
 const moderation = new Sequelize('database', 'user', 'password', {
@@ -45,7 +45,9 @@ module.exports = {
             option
                 .setName('page')
                 .setRequired(true)
-                .setDescription('Page?')),
+                .setDescription('Page?'))
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+        .setContexts(InteractionContextType.Guild),
     async execute(interaction) {
         // interaction.user is the object representing the User who ran the command
         // interaction.member is the GuildMember object, which represents the user in the specific guild
@@ -79,7 +81,7 @@ module.exports = {
                 const warnListUser = await warnings.findAll({
                     where: {
                         userId: guildMember.id,
-						server: interaction.guildId,
+                        server: interaction.guildId,
                     }
                 });
                 let page = interaction.options.getInteger("page");

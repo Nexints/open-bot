@@ -92,6 +92,13 @@ const blacklist = moderation.define('blacklist', {
     },
 });
 
+const bypassLogs = moderation.define('bypasslogs', {
+    channelId: {
+        type: Sequelize.STRING,
+        unique: true,
+    },
+});
+
 module.exports = {
     async execute() {
         client.on("messageUpdate", async (oldMessage, newMessage) => {
@@ -99,19 +106,10 @@ module.exports = {
 
             // Check if the message has changed at all. Otherwise, code can be mirrored from messageHandler.js
             let msg;
-            if (oldMessage.content === newMessage.content || newMessage.author.id == clientId) {
+            if (oldMessage.content == newMessage.content || newMessage.author.id == clientId) {
                 return;
             } else {
                 msg = newMessage;
-            }
-
-            // Logs message author for 5 seconds. Checks if >5 messages in 5 seconds.
-            if (msg.author.id != client.user.id) {
-                await messages.create({
-                    userId: msg.author.id,
-                    content: msg.content,
-                    messageId: msg.id
-                });
             }
 
             // Bot-wide message logging functionality!
@@ -137,12 +135,19 @@ module.exports = {
             // Server-side message logging functionality!
             // Will not be deprecated.
             const loggedIDs = await logging.findAll();
+            const bypassLoggedMessages = await bypassLogs.findAll();
             const modChannelIDs = await modlog.findAll();
             const messageCount = await messages.findAll({
                 where: {
                     userId: msg.author.id
                 }
             });
+            let bypassed = false;
+            bypassLoggedMessages.forEach(bypass => {
+                if (bypass.channelId == msg.channel.id) {
+                    bypassed = true;
+                }
+            })
             let logged = false;
             let logTemp = false;
             let loggedChannelID;
@@ -183,12 +188,14 @@ module.exports = {
                         if (messageCount.length > spamWarn) {
                             redacted = `${msg.author.username} (Auto Warned)`;
                         }
-                        if (!(oldMessage.content == null)) {
-                            logChannel.send(`(${msg.url}) \`${redacted}: ${oldMessage.cleanContent}\`${replied} [Original / (${msg.id})]`);
-                        } else {
-                            logChannel.send(`(${msg.url}) No original message was cached for ${msg.url} (${msg.id})!`);
+                        if (msg.author.bot == false && !bypassed) {
+                            if (!(oldMessage.content == null)) {
+                                logChannel.send(`(${msg.url}) \`${redacted}: ${oldMessage.cleanContent}\`${replied} [Original / (${msg.id})]`);
+                            } else {
+                                logChannel.send(`(${msg.url}) No original message was cached for ${msg.url} (${msg.id})!`);
+                            }
+                            await logChannel.send(`(${msg.url}) \`${redacted}: ${msg.cleanContent}\`${replied} [Edited / (${msg.id})]`);
                         }
-                        await logChannel.send(`(${msg.url}) \`${redacted}: ${msg.cleanContent}\`${replied} [Edited / (${msg.id})]`);
                     } else {
                         await logging.destroy({
                             where: {
@@ -237,6 +244,11 @@ module.exports = {
             const invite = await invites.findAll({});
             const blacklists = await blacklist.findAll({});
 
+            // Bypass automod logging on bypassed channels. Data privacy.
+            if (bypassed) {
+                modChannelBool = false;
+            }
+
             // See if moderation checks are required.
             let linkCheck = false;
             let inviteCheck = false;
@@ -260,112 +272,60 @@ module.exports = {
             // Only done when dealing with server messages.
             // Skips moderation checks when messageCount > spamDelete
             let botMessage;
-            if (messageCount.length < spamDelete + 1) {
-                if (msg.author.id != client.user.id && msg.guild != null) {
-                    if (autoModAPI == false) {
-                        if ((linkCheck || inviteCheck)) {
+            if (msg.author.id != client.user.id && msg.guild != null && msg.author.bot == false) {
+                if (autoModAPI == false) {
+                    if ((linkCheck || inviteCheck)) {
 
-                            // defines blacklisted and whitelisted links
-                            const linkEnds = ['.com', '.org', '.net', '.xyz', '.co', '.ca', '.gg']; // coverage for (some) link types
-                            const blacklist = ['https://', 'http://']; // block all links
-                            const blacklistInvites = ['discord.gg/', 'discord.com']; // block invite links
-                            const blacklistCustom = ['/invite'] // block specific directories in the covered link types (invite)
-                            const whitelist = ['tenor.com/', 'cdn.discordapp.com/', 'cdn.discord.com/', 'cdn.discord.gg/', 'media.discordapp.net']; // whitelist specific domains (Whitelisted my domain lol)
-                            let blacklisted = false;
-                            let linkOrMessage = "invite";
-                            let linkOrMessageCaps = "Invite";
+                        // defines blacklisted and whitelisted links
+                        const linkEnds = ['.com', '.org', '.net', '.xyz', '.co', '.ca', '.gg']; // coverage for (some) link types
+                        const blacklist = ['https://', 'http://']; // block all links
+                        const blacklistInvites = ['discord.gg/', 'discord.com']; // block invite links
+                        const blacklistCustom = ['/invite'] // block specific directories in the covered link types (invite)
+                        const whitelist = ['tenor.com/', 'cdn.discordapp.com/', 'cdn.discord.com/', 'cdn.discord.gg/', 'media.discordapp.net']; // whitelist specific domains
+                        let blacklisted = false;
+                        let linkOrMessage = "invite";
+                        let linkOrMessageCaps = "Invite";
 
-                            // checks if the link is blacklisted
-                            for (let i = 0; i < blacklist.length; i++) {
-                                if (msg.content.includes(blacklist[i]) && linkCheck) {
+                        // checks if the link is blacklisted
+                        for (let i = 0; i < blacklist.length; i++) {
+                            if (msg.content.includes(blacklist[i]) && linkCheck) {
+                                blacklisted = true;
+                                linkOrMessage = "link";
+                                linkOrMessageCaps = "Link";
+                            }
+                        }
+                        for (let i = 0; i < blacklistInvites.length; i++) {
+                            if (msg.content.includes(blacklistInvites[i]) && inviteCheck) {
+                                blacklisted = true;
+                            }
+                        }
+                        for (let i = 0; i < linkEnds.length; i++) {
+                            for (let j = 0; j < blacklistCustom.length; j++) {
+                                if (msg.content.includes(linkEnds[i] + blacklistCustom[j]) && inviteCheck) {
                                     blacklisted = true;
-                                    linkOrMessage = "link";
-                                    linkOrMessageCaps = "Link";
-                                }
-                            }
-                            for (let i = 0; i < blacklistInvites.length; i++) {
-                                if (msg.content.includes(blacklistInvites[i]) && inviteCheck) {
-                                    blacklisted = true;
-                                }
-                            }
-                            for (let i = 0; i < linkEnds.length; i++) {
-                                for (let j = 0; j < blacklistCustom.length; j++) {
-                                    if (msg.content.includes(linkEnds[i] + blacklistCustom[j]) && inviteCheck) {
-                                        blacklisted = true;
-                                    }
-                                }
-                            }
-                            if (blacklisted) {
-
-                                // checks if the link is whitelisted (overrides blacklist)
-                                let whitelisted = false;
-                                for (let i = 0; i < whitelist.length; i++) {
-                                    if (msg.content.includes(whitelist[i])) {
-                                        whitelisted = true;
-                                    }
-                                }
-                                if (!whitelisted) {
-
-                                    // sends an event to the server and client log and attempts to delete the message
-                                    // for privacy reasons, server log is currently deprecated (non existant), but may be re-implemented at a future date.
-                                    if (modChannelBool) {
-                                        const inviteDeleteEmbed = new EmbedBuilder()
-                                            .setColor(delMsgColor)
-                                            .setTitle('Deleted Message')
-                                            .setURL(embedURL)
-                                            //.setAuthor({ name: 'Moderation Event', iconURL: embedIconURL, url: embedURL })
-                                            .setDescription(`The ${linkOrMessage} \`${msg.cleanContent}\` has been deleted automatically.`)
-                                            .setThumbnail(embedURL)
-                                            .addFields({ name: 'Offending user:', value: `\`${msg.author}\` (\`${msg.author.username}\`)` })
-                                            // .setImage('https://i.imgur.com/AfFp7pu.png')
-                                            .setTimestamp()
-                                            .setFooter({ text: footerText, iconURL: embedIconURL });
-                                        await modChannel.send({ embeds: [inviteDeleteEmbed] });
-                                    }
-                                    if (channel.permissionsFor(channel.guild.members.me).has(['ManageMessages'], true)) {
-                                        // console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] User \`${msg.author.id}\` (${msg.author.username}) tried sending a ${linkOrMessage} in the channel \`${channel.id}\` (${channel.name}). The ${linkOrMessage} was: \`${msg.content}\`.`);
-                                        await msg.delete();
-                                        botMessage = await msg.channel.send(`${msg.author}, ${linkOrMessageCaps}s are not allowed here.`);
-                                    } else {
-                                        if (channel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
-                                            botMessage = await msg.channel.send("I tried deleting a message here, but I have no permissions!\n-# This is typically caused by bad bot permissions. Please give me the \"Manage Messages\" permission to enable this!");
-                                        }
-                                        // console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a ${linkOrMessage} in the channel \`${channel.id}\` (${channel.name}), but the bot does not have the necessary permissions to delete or send messages. The link was: \`${msg.content}\`.`);
-                                        if (logged && logChannel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
-                                            await logChannel.send(`[WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a ${linkOrMessage} in the channel ${channel}, but the bot does not have the necessary permissions to delete messages. Please give me the \'Manage Messages\' permission to enable this! The link was: \`${msg.content}\`.`);
-                                        }
-                                    }
                                 }
                             }
                         }
+                        if (blacklisted) {
 
-                        // checks for blacklisted words
-                        if (blacklistCheck) {
-                            blacklistCheck = false;
-                            blacklists.forEach(async blacklist => {
-                                if (blacklist.strict) {
-                                    if (msg.content.toLowerCase().includes(blacklist.word.toLowerCase())) {
-                                        blacklistCheck = true;
-                                    }
-                                } else {
-                                    const whitespace = [' ', '\n', '\t'];
-                                    for (let i = 0; i < whitespace.length; i++) {
-                                        if (msg.content.toLowerCase().includes(whitespace[i] + blacklist.word.toLowerCase() + whitespace[i]) || msg.content.toLowerCase().includes(blacklist.word.toLowerCase() + whitespace[i]) || msg.content.toLowerCase() == (blacklist.word.toLowerCase())) {
-                                            blacklistCheck = true;
-                                        }
-                                    }
+                            // checks if the link is whitelisted (overrides blacklist)
+                            let whitelisted = false;
+                            for (let i = 0; i < whitelist.length; i++) {
+                                if (msg.content.includes(whitelist[i])) {
+                                    whitelisted = true;
                                 }
-                            })
+                            }
+                            if (!whitelisted) {
 
-                            // checks for a blacklist
-                            if (blacklistCheck) {
+                                // sends an event to the server and client log and attempts to delete the message
+                                // for privacy reasons, server log is currently deprecated (non existant), but may be re-implemented at a future date.
                                 if (modChannelBool) {
                                     const inviteDeleteEmbed = new EmbedBuilder()
                                         .setColor(delMsgColor)
                                         .setTitle('Deleted Message')
                                         .setURL(embedURL)
                                         //.setAuthor({ name: 'Moderation Event', iconURL: embedIconURL, url: embedURL })
-                                        .setDescription(`The blacklisted word in the message \`${msg.cleanContent}\` has been deleted automatically.`)
+                                        .setDescription(`The ${linkOrMessage} \`${msg.cleanContent}\` has been deleted automatically.`)
                                         .setThumbnail(embedURL)
                                         .addFields({ name: 'Offending user:', value: `\`${msg.author}\` (\`${msg.author.username}\`)` })
                                         // .setImage('https://i.imgur.com/AfFp7pu.png')
@@ -374,105 +334,82 @@ module.exports = {
                                     await modChannel.send({ embeds: [inviteDeleteEmbed] });
                                 }
                                 if (channel.permissionsFor(channel.guild.members.me).has(['ManageMessages'], true)) {
-                                    // console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] User \`${msg.author.id}\` (${msg.author.username}) tried sending a blacklisted word in the channel \`${channel.id}\` (${channel.name}). The word was: \`${msg.content}\`.`);
+                                    // console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] User \`${msg.author.id}\` (${msg.author.username}) tried sending a ${linkOrMessage} in the channel \`${channel.id}\` (${channel.name}). The ${linkOrMessage} was: \`${msg.content}\`.`);
                                     await msg.delete();
-                                    botMessage = await msg.channel.send(`${msg.author}, This word is blacklisted.`);
+                                    botMessage = await msg.channel.send(`${msg.author}, ${linkOrMessageCaps}s are not allowed here.`);
                                 } else {
                                     if (channel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
-                                        botMessage = await msg.channel.send("I tried deleting a message here, but I have no permissions!\n-# This is typically caused by bad bot permissions. Please give me the manage messages permission to enable this!");
+                                        botMessage = await msg.channel.send("I tried deleting a message here, but I have no permissions!\n-# This is typically caused by bad bot permissions. Please give me the \"Manage Messages\" permission to enable this!");
                                     }
-                                    // console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a blacklisted word in the channel \`${channel.id}\` (${channel.name}), but the bot does not have the necessary permissions to delete or send messages. The word was: \`${msg.content}\`.`);
+                                    // console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a ${linkOrMessage} in the channel \`${channel.id}\` (${channel.name}), but the bot does not have the necessary permissions to delete or send messages. The link was: \`${msg.content}\`.`);
                                     if (logged && logChannel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
-                                        await logChannel.send(`[WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a blacklisted word in the channel ${channel}, but the bot does not have the necessary permissions to delete or send messages. Please give me the \'Manage Messages\' permission to enable this! The word was: \`${msg.content}\`.`);
+                                        await logChannel.send(`[WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a ${linkOrMessage} in the channel ${channel}, but the bot does not have the necessary permissions to delete messages. Please give me the \'Manage Messages\' permission to enable this! The link was: \`${msg.content}\`.`);
                                     }
                                 }
                             }
                         }
-                    } else {
-                        // Currently waiting for the actual auto-mod.
-                        if (logged && msg.author.id != clientId && logChannel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
-                            await logChannel.send(`Note that the auto-mod API is enabled, but does not currently work. Please disable it in the config!`);
-                        }
+                    }
 
-                    }
-                    await delay(5000);
-                    if (botMessage != undefined) {
-                        await botMessage.delete();
-                    }
-                }
-            }
-            if (msg.author.id != client.user.id) {
-                (async () => {
-                    if (messageCount.length > spamDelete) {
-                        if (!(messageCount.length > spamWarn) && modChannelBool) {
-                            const deleteEmbed = new EmbedBuilder()
-                                .setColor(delMsgColor)
-                                .setTitle('Deleted Edited Message')
-                                .setURL(embedURL)
-                                //.setAuthor({ name: 'Moderation Event', iconURL: embedIconURL, url: embedURL })
-                                .setDescription(`The spam-edited message \`${msg.cleanContent}\` has been deleted automatically.`)
-                                .setThumbnail(embedURL)
-                                .addFields({ name: 'Offending user:', value: `\`${msg.author}\` (\`${msg.author.username}\`)` })
-                                // .setImage('https://i.imgur.com/AfFp7pu.png')
-                                .setTimestamp()
-                                .setFooter({ text: footerText, iconURL: embedIconURL });
-                            await modChannel.send({ embeds: [deleteEmbed] });
-                        }
-                        if (channel.permissionsFor(channel.guild.members.me).has(['ManageMessages'], true)) {
-                            await msg.delete();
-                        }
-                    }
-                    if (messageCount.length > spamWarn) {
-                        await warnings.create({
-                            userId: msg.author.id,
-                            reason: spamWarnReason,
-                            issuer: "automod",
-                            server: msg.guild.id
-                        });
-                        const warnListUser = await warnings.findAll({
-                            where: {
-                                userId: msg.author.id,
-                                server: msg.guild.id
+                    // checks for blacklisted words
+                    if (blacklistCheck) {
+                        blacklistCheck = false;
+                        blacklists.forEach(async blacklist => {
+                            if (blacklist.strict) {
+                                if (msg.content.toLowerCase().includes(blacklist.word.toLowerCase())) {
+                                    blacklistCheck = true;
+                                }
+                            } else {
+                                const whitespace = [' ', '\n', '\t'];
+                                for (let i = 0; i < whitespace.length; i++) {
+                                    if (msg.content.normalize("NFKC").toLowerCase().includes(whitespace[i] + blacklist.word.toLowerCase() + whitespace[i]) || msg.content.normalize("NFKC").toLowerCase().includes(blacklist.word.toLowerCase() + whitespace[i]) || msg.content.normalize("NFKC").toLowerCase() == (blacklist.word.toLowerCase()) || msg.content.normalize("NFKC").toLowerCase().endsWith(blacklist.word.toLowerCase())) {
+                                        blacklistCheck = true;
+                                    }
+                                }
                             }
-                        });
-                        const warnEmbed = new EmbedBuilder()
-                            .setColor(warnColor)
-                            .setTitle(`Warning ${warnListUser.length}`)
-                            .setURL(embedURL)
-                            //.setAuthor({ name: 'Moderation Event', iconURL: embedIconURL, url: embedURL })
-                            .setDescription(`You have been warned for: ${spamWarnReason}. You now have ${warnListUser.length} warning(s) on ${msg.guild}.`)
-                            .setThumbnail(embedURL)
-                            // .addFields({ name: 'Inline field title', value: 'Some value here', inline: true })
-                            // .setImage('https://i.imgur.com/AfFp7pu.png')
-                            .setTimestamp()
-                            .setFooter({ text: footerText, iconURL: embedIconURL });
-                        if (modChannelBool) {
-                            const warnEmbed2 = new EmbedBuilder()
-                                .setColor(warnColor)
-                                .setTitle(`Warning (Case ${warnListUser.length})`)
-                                .setURL(embedURL)
-                                //.setAuthor({ name: 'Moderation Event', iconURL: embedIconURL, url: embedURL })
-                                .setDescription(`\`${msg.author}\` (\`${msg.author.username}\`) has been automatically warned for: ${spamWarnReason}. They now have ${warnListUser.length} warning(s).`)
-                                .setThumbnail(embedURL)
-                                .addFields({ name: 'This message has been deleted: ', value: `\`${msg.cleanContent}\``, inline: true })
-                                // .setImage('https://i.imgur.com/AfFp7pu.png')
-                                .setTimestamp()
-                                .setFooter({ text: footerText, iconURL: embedIconURL });
-                            await modChannel.send({ embeds: [warnEmbed2] });
-                        }
-                        await guildMember.send({ embeds: [warnEmbed] });
-                        if (channel.permissionsFor(channel.guild.members.me).has(['ModerateMembers'], true) && !(msg.member.permissions.has(PermissionsBitField.Flags.Administrator))) {
-                            await guildMember.timeout(5000, spamWarnReason);
+                        })
+
+                        // checks for a blacklist
+                        if (blacklistCheck) {
+                            if (modChannelBool) {
+                                const inviteDeleteEmbed = new EmbedBuilder()
+                                    .setColor(delMsgColor)
+                                    .setTitle('Deleted Message')
+                                    .setURL(embedURL)
+                                    //.setAuthor({ name: 'Moderation Event', iconURL: embedIconURL, url: embedURL })
+                                    .setDescription(`The blacklisted word in the message \`${msg.cleanContent}\` has been deleted automatically.`)
+                                    .setThumbnail(embedURL)
+                                    .addFields({ name: 'Offending user:', value: `\`${msg.author}\` (\`${msg.author.username}\`)` })
+                                    // .setImage('https://i.imgur.com/AfFp7pu.png')
+                                    .setTimestamp()
+                                    .setFooter({ text: footerText, iconURL: embedIconURL });
+                                await modChannel.send({ embeds: [inviteDeleteEmbed] });
+                            }
+                            if (channel.permissionsFor(channel.guild.members.me).has(['ManageMessages'], true)) {
+                                // console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] User \`${msg.author.id}\` (${msg.author.username}) tried sending a blacklisted word in the channel \`${channel.id}\` (${channel.name}). The word was: \`${msg.content}\`.`);
+                                await msg.delete();
+                                botMessage = await msg.channel.send(`${msg.author}, This word is blacklisted.`);
+                            } else {
+                                if (channel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
+                                    botMessage = await msg.channel.send("I tried deleting a message here, but I have no permissions!\n-# This is typically caused by bad bot permissions. Please give me the manage messages permission to enable this!");
+                                }
+                                // console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a blacklisted word in the channel \`${channel.id}\` (${channel.name}), but the bot does not have the necessary permissions to delete or send messages. The word was: \`${msg.content}\`.`);
+                                if (logged && logChannel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
+                                    await logChannel.send(`[WARN] User \`${msg.author.id}\` (${msg.author.username}) tried sending a blacklisted word in the channel ${channel}, but the bot does not have the necessary permissions to delete or send messages. Please give me the \'Manage Messages\' permission to enable this! The word was: \`${msg.content}\`.`);
+                                }
+                            }
                         }
                     }
-                    await delay(spamDelay * 1000);
-                    await messages.destroy({
-                        where: {
-                            userId: msg.author.id,
-                            messageId: msg.id,
-                        }
-                    });
-                })();
+                } else {
+                    // Currently waiting for the actual auto-mod.
+                    if (logged && msg.author.id != clientId && logChannel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true)) {
+                        await logChannel.send(`Note that the auto-mod API is enabled, but does not currently work. Please disable it in the config!`);
+                    }
+
+                }
+                await delay(spamDelay * 1000);
+                if (botMessage != undefined) {
+                    await botMessage.delete();
+                }
             }
         })
     }

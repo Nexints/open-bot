@@ -7,7 +7,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('send')
         .setDescription('Send messages as the bot! Only works if the developer has permission.')
-        .addStringOption(option =>
+        .addChannelOption(option =>
             option
                 .setName('channel')
                 .setRequired(true)
@@ -22,29 +22,20 @@ module.exports = {
         // interaction.member is the GuildMember object, which represents the user in the specific guild
         if (interaction.user.id == devID) {
             const updateMessage = interaction.options.getString('message');
-            let channel;
-            try {
-                channel = await client.channels.fetch(interaction.options.getString('channel'));
-            } catch (error){
-                await interaction.reply({
-                    content: "This channel is a DM, or is otherwise inaccessable / invalid. No message has been sent.\n\nError: " + error,
-                    flags: MessageFlags.Ephemeral
-                });
-                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] User ${interaction.user.id} (${interaction.user.username}) tried sending the message ${updateMessage}, but the channel ${interaction.options.getString('channel')} was inaccessable or invalid!`);
-                return;
-            }
+            let channel = interaction.options.getChannel('channel');
             if (channel.permissionsFor(channel.guild.members.me).has(['ViewChannel', 'SendMessages'], true) && !(channel.permissionsFor(interaction.user) == null) && channel.permissionsFor(interaction.user).has(['ManageChannels'], true) ) {
-                channel.send(updateMessage); await interaction.reply({
-                    content: "Sent the message \"" + updateMessage + "\" to the channel " + interaction.options.getString('channel') + "!",
+                channel.send(updateMessage);
+                await interaction.reply({
+                    content: "Sent the message \"" + updateMessage + "\" to the channel " + interaction.options.getChannel('channel') + "!",
                     flags: MessageFlags.Ephemeral
                 });
-                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] User ${interaction.user.id} (${interaction.user.username}) sent the message ${updateMessage} in the channel ${interaction.options.getString('channel')}!`);
+                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] User ${interaction.user.id} (${interaction.user.username}) sent the message ${updateMessage} in the channel ${interaction.options.getChannel('channel')}!`);
             } else {
                 await interaction.reply({
                     content: "You or I don't have permissions to send messages as the bot here.",
                     flags: MessageFlags.Ephemeral
                 });
-                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] User ${interaction.user.id} (${interaction.user.username}) tried sending the message ${updateMessage} in the channel ${interaction.options.getString('channel')}, but either the bot owner or the bot itself doesn't have permission!`);
+                console.log("[" + DateFormatter.format(Date.now()) + `] [INFO] User ${interaction.user.id} (${interaction.user.username}) tried sending the message ${updateMessage} in the channel ${interaction.options.getChannel('channel')}, but either the bot owner or the bot itself doesn't have permission!`);
             }
 
         } else {

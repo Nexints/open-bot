@@ -42,7 +42,7 @@ module.exports = {
 			return;
 		}
 		await interaction.reply({
-			content: "A YouTube link to Bad Apple - https://www.youtube.com/watch?v=FtutLA63Cp8\n-# This is a silly command, and will be removed on version 1.0."
+			content: "A YouTube link to Bad Apple - https://www.youtube.com/watch?v=FtutLA63Cp8\n-# This is a silly command, and will be toggleable shortly."
 		});
 	},
 };

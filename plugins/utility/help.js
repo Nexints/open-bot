@@ -20,10 +20,10 @@ module.exports = {
 			if (interaction.user.id == devID) {
 				helpArray.push("**Bot Owner commands:**");
 				helpArray.push("- /restart: Restarts the bot.");
-				helpArray.push("- /dev clear: Clears something from the bot.");
-				helpArray.push("- /dev update: Updates a channel with a message.");
 				helpArray.push("- /dev allow: Allows another user to broadcast updates to a specific channel.");
+				helpArray.push("- /dev clear: Clears something from the bot.");
 				helpArray.push("- /dev deny: Denies another user all permissions to broadcast updates.");
+				helpArray.push("- /dev update: Updates a channel with a message.");
 				helpArray.push("- /send: Sends a message as the bot! Only works if the bot owner has permission to send messages here and has the \"manage messages\" permission.");
 			}
 			if (interaction.member.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
@@ -54,8 +54,17 @@ module.exports = {
 			helpArray.push("**Utility commands:**");
 			helpArray.push("- /help: Provides this help menu.");
 			helpArray.push("- /info: Provides an info manual about the bot.");
-			helpArray.push("- /optout: Opts out of data collection. Moderation services still require your data, and this is per-user. (Server / Bot owners should opt-out in config.js!)");
 			helpArray.push("- /optin: Opts into data collection.")
+			helpArray.push("- /optout: Opts out of data collection. Moderation services still require your data, and this is per-user. (Server / Bot owners should opt-out in config.js!)");
+
+			//Currency stuff
+			helpArray.push("**Currency commands:**");
+			helpArray.push("- /bal: View how much you have.");
+			helpArray.push("- /baltop: Shows the people with the highest currency.");
+			helpArray.push("- /coinflip: Flip a coin, earn money or lose money.");
+			helpArray.push("-# I do not endorse underage gambling.")
+			helpArray.push("- /pay: Pay a specific person.");
+			helpArray.push("- /work: Work for money.");
 
 			// Fun stuff
 			helpArray.push("**Fun commands:**");
@@ -65,22 +74,23 @@ module.exports = {
 			helpArray.push("- /pat: Pats the person specified.");
 
 			//silly stuff
-			helpArray.push("**Silly commands: (Removed on v1.0)**");
+			helpArray.push("**Silly commands: (Toggleable on v1.0)**");
 			helpArray.push("- /badapple: Sends a bad apple YT URL. Only works if links aren't blacklisted.");
-			helpArray.push("- /silly: Silly.");
+			helpArray.push("- /minori: Minori spelling mistake.");
 			helpArray.push("- /mizuover: It's so Mizuover. That's all you need to know.");
+			helpArray.push("- /silly: Silly.");
 			helpArray.push("-# This help menu only gives you help for commands you have permission to use.")
 
 			let page = interaction.options.getInteger("page");
 			let pageSize = 15;
 			if (helpArray[(page - 1) * pageSize] == undefined) {
-				helpMessage = helpMessage + `\n\nThe page that you have requested is not within bounds. Only pages between 1 and ${Math.ceil((helpArray.length) / pageSize)} are valid.`;
+				helpMessage += `\n\nThe page that you have requested is not within bounds. Only pages between 1 and ${Math.ceil((helpArray.length) / pageSize)} are valid.`;
 			} else {
 				for (let i = (page - 1) * pageSize; i < Math.min(pageSize + ((page - 1) * pageSize), helpArray.length); i++) {
-					helpMessage = helpMessage + "\n" + helpArray[i];
+					helpMessage += "\n" + helpArray[i];
 				}
 			}
-			helpMessage = helpMessage + `\n--- Page (${page}/${Math.ceil((helpArray.length) / pageSize)}). © Nexint 2025. All Rights Reserved. ---`;
+			helpMessage += `\n--- Page (${page}/${Math.ceil((helpArray.length) / pageSize)}). © Nexint 2025. All Rights Reserved. ---`;
 			await interaction.reply({
 				content: helpMessage,
 				flags: MessageFlags.Ephemeral

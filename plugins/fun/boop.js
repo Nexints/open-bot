@@ -43,11 +43,11 @@ const links = moderation.define('links', {
 	},
 });
 
-const pat = fundb.define('pat', {
+const boop = fundb.define('boop', {
 	userId: {
 		type: Sequelize.STRING,
 	},
-	pattedId: {
+	boopId: {
 		type: Sequelize.STRING,
 	},
 	value: {
@@ -58,13 +58,13 @@ const pat = fundb.define('pat', {
 module.exports = {
 	cooldown: 5,
 	data: new SlashCommandBuilder()
-		.setName('pat')
-		.setDescription('Pat someone!')
+		.setName('boop')
+		.setDescription('Boop someone!')
 		.addUserOption(option =>
 			option
 				.setName('user')
 				.setRequired(true)
-				.setDescription('The person to pat :P'))
+				.setDescription('The person to boop :P'))
 		.addBooleanOption(option =>
 			option
 				.setName('notify')
@@ -85,40 +85,39 @@ module.exports = {
 				optedOut = true;
 			}
 		})
-		const tenorSearch = await fetch("https://tenor.googleapis.com/v2/search?q=" + "anime pat" + "&key=" + tenorKey + "&client_key=" + "DiscordBot" + "&limit=" + 1 + "&random=" + true);
+		const tenorSearch = await fetch("https://tenor.googleapis.com/v2/search?q=" + "anime poke" + "&key=" + tenorKey + "&client_key=" + "DiscordBot" + "&limit=" + 1 + "&random=" + true);
 		const results = await tenorSearch.json();
 		const url = results.results[0].media_formats.gif.url;
-		let findpat;
+		let findboop;
 		let description = `One of you has opted out of data collection.`;
 		if (!optedOut) {
-			findpat = await pat.findOne({
+			findboop = await boop.findOne({
 				where: {
 					userId: interaction.user.id,
-					pattedId: interaction.options.getUser("user").id
+					boopId: interaction.options.getUser("user").id
 				}
 			});
-
-			if (findpat === null) {
-				await pat.create({
+			if (findboop === null) {
+				await boop.create({
 					userId: interaction.user.id,
-					pattedId: interaction.options.getUser("user").id,
+					boopId: interaction.options.getUser("user").id,
 					value: 1
 				});
-				findpat = await pat.findOne({
+				findboop = await boop.findOne({
 					where: {
 						userId: interaction.user.id,
-						pattedId: interaction.options.getUser("user").id
+						boopId: interaction.options.getUser("user").id
 					}
 				});
 			} else {
-				findpat.value += 1;
-				await findpat.save();
+				findboop.value += 1;
+				await findboop.save();
 			}
-			description = `${interaction.user.displayName} has patted ${interaction.options.getUser("user").displayName} ${findpat.value} time(s)!`;
+			description = `${interaction.user.displayName} has booped ${interaction.options.getUser("user").displayName} ${findboop.value} time(s)!`;
 		}
-		const patEmbed = new EmbedBuilder()
+		const helloEmbed = new EmbedBuilder()
 			.setColor(infoColor)
-			.setTitle(`${interaction.user.displayName} pats ${interaction.options.getUser("user").displayName}!`)
+			.setTitle(`${interaction.user.displayName} boops ${interaction.options.getUser("user").displayName}!`)
 			.setURL(results.results[0].itemurl)
 			//.setAuthor({ name: 'Moderation Event', iconURL: embedIconURL, url: embedURL })
 			.setDescription(description)
@@ -128,14 +127,14 @@ module.exports = {
 			.setTimestamp()
 			.setFooter({ text: footerText, iconURL: embedIconURL });
 		const embedMessage = await interaction.reply({
-			embeds: [patEmbed], withResponse: true
+			embeds: [helloEmbed], withResponse: true
 		});
 		let notify = interaction.options.getBoolean("notify");
 		if (notify == null) {
 			notify = true;
 		}
 		if (notify) {
-			await dmNotify(interaction.options.getUser("user"), `${interaction.user.displayName} patted you in the channel ${embedMessage.resource.message.url}!`, url, results.results[0].itemurl, null, embedIconURL, footerText, infoColor);
+			await dmNotify(interaction.options.getUser("user"), `${interaction.user.displayName} booped you in the channel ${embedMessage.resource.message.url}!`, url, results.results[0].itemurl, null, embedIconURL, footerText, infoColor);
 		}
 	},
 };

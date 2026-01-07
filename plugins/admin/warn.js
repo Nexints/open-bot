@@ -54,22 +54,13 @@ module.exports = {
 		// interaction.member is the GuildMember object, which represents the user in the specific guild
 		if (interaction.guild != null) {
 			if (interaction.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
-				let guildMember = interaction.options.getUser("user");
-				try {
-					guildMember = await interaction.guild.members.fetch(guildMember.id);
-				} catch (error) {
-					if (error.rawError.message == "Unknown Member") {
-						console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] The user \`${interaction.user.id}\` (${interaction.user.username}) tried warning ${interaction.options.getString('id')}, but the member does not exist!`);
-						await interaction.reply({ content: `The specified member does not exist or is already banned.`, flags: MessageFlags.Ephemeral });
-					} else if (error.rawError.message == "Invalid Form Body") {
-						console.log("[" + DateFormatter.format(Date.now()) + `] [WARN] The user \`${interaction.user.id}\` (${interaction.user.username}) tried warning someone, but the command is malformed!`);
-						await interaction.reply({ content: `The ID you inputted is not an ID.`, flags: MessageFlags.Ephemeral });
-					} else {
-						console.log("[" + DateFormatter.format(Date.now()) + `] [ERROR] ${error}`)
-						await interaction.reply({ content: `Something seriously wrong happened. Error: ${error}`, flags: MessageFlags.Ephemeral })
-					}
-					return
-				}
+
+                // cant lift self warn unless administrator
+                if(interaction.options.getUser("user").id == interaction.user.id && !(interaction.member.permissions.has(PermissionsBitField.Flags.Administrator))){
+                    await interaction.reply({ content: "You don't have permission to warn yourself.", flags: MessageFlags.Ephemeral });
+					return;
+                }
+				let guildMember = await interaction.guild.members.fetch(interaction.options.getUser("user").id);
 				if ((interaction.member.roles.highest.comparePositionTo(guildMember.roles.highest) <= 0)) {
 					await interaction.reply({ content: `You don't have permission to warn ${guildMember.user.username}.`, flags: MessageFlags.Ephemeral });
 				} else if (interaction.options.getString('reason').length < 100) {

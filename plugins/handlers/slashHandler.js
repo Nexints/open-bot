@@ -48,7 +48,7 @@ module.exports = {
 					console.error(error);
 				}
 				catch (error) {
-					liveErrorHandler(error);
+					throw(error);
 				}
 			}
 		});
