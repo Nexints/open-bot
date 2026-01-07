@@ -3,8 +3,11 @@
 > 
 > This is PRE-PRE-ALPHA SOFTWARE! While I can try to fix as many bugs as possible, I am not liable for any problems this server software has. Use at your own risk.
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 >
 > PLEASE host your own instance of this bot! The main instance, while most backdoors are removed, may be unstable if many people try to use it.
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 
